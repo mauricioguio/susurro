@@ -22,7 +22,8 @@ function timeAgo(dateStr: string): string {
 
 const REACTION_TYPES = ['🤍', '🔥', '💫'];
 
-export default function FeedScreen({ navigation }: any) {
+export default function FeedScreen({ navigation, route }: any) {
+  const explore = route?.name === 'Explore';
   const [confessions, setConfessions] = useState<Confession[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -30,7 +31,7 @@ export default function FeedScreen({ navigation }: any) {
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const data = await confessionsApi.getFeed();
+      const data = explore ? await confessionsApi.getExplore() : await confessionsApi.getFeed();
       setConfessions(data);
     } catch {}
     finally { setLoading(false); setRefreshing(false); }

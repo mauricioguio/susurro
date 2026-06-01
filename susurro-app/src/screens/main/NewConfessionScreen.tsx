@@ -16,7 +16,7 @@ export default function NewConfessionScreen({ navigation }: any) {
     setLoading(true);
     try {
       await confessionsApi.create(text.trim());
-      navigation.goBack();
+      navigation.navigate('Main', { screen: 'Explore' });
     } catch (e: any) {
       Alert.alert('Error', e?.response?.data?.message ?? 'No se pudo publicar');
     } finally {
