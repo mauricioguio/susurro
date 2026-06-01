@@ -6,6 +6,7 @@ import {
 import { confessionsApi } from '../../services/api';
 
 type Reaction = { type: string };
+type Comment = { id: string; text: string; createdAt: string; user: { alias: string } };
 type Confession = {
   id: string;
   text: string;
@@ -36,7 +37,10 @@ function ConfessionCard({ item, index, navigation, onReact, onCommentOpen }: {
   onReact: (id: string, type: string) => void;
   onCommentOpen: (index: number) => void;
 }) {
-  const [commentOpen, setCommentOpen] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [inputOpen, setInputOpen] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loadingComments, setLoadingComments] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [sending, setSending] = useState(false);
   const [commentCount, setCommentCount] = useState(item._count.comments);
@@ -46,25 +50,37 @@ function ConfessionCard({ item, index, navigation, onReact, onCommentOpen }: {
     return acc;
   }, {});
 
-  const toggleComment = () => {
-    const opening = !commentOpen;
-    setCommentOpen(opening);
-    if (opening) {
-      // pequeño delay para que el layout actualice antes de hacer scroll
-      setTimeout(() => onCommentOpen(index), 100);
-    } else {
+  const toggleComments = async () => {
+    if (commentsOpen) {
+      setCommentsOpen(false);
+      setInputOpen(false);
       Keyboard.dismiss();
+      return;
     }
+    setCommentsOpen(true);
+    setLoadingComments(true);
+    onCommentOpen(index);
+    try {
+      const data = await confessionsApi.getComments(item.id);
+      setComments(data);
+    } catch {}
+    finally { setLoadingComments(false); }
   };
 
-  const handleSendComment = async () => {
+  const openInput = () => {
+    setInputOpen(true);
+    setTimeout(() => onCommentOpen(index), 150);
+  };
+
+  const handleSend = async () => {
     if (!commentText.trim()) return;
     setSending(true);
     try {
-      await confessionsApi.addComment(item.id, commentText.trim());
+      const newComment = await confessionsApi.addComment(item.id, commentText.trim());
+      setComments(prev => [...prev, newComment]);
       setCommentText('');
       setCommentCount(n => n + 1);
-      setCommentOpen(false);
+      setInputOpen(false);
       Keyboard.dismiss();
     } catch (e: any) {
       Alert.alert('Error', e?.response?.data?.message ?? 'No se pudo enviar');
@@ -75,6 +91,7 @@ function ConfessionCard({ item, index, navigation, onReact, onCommentOpen }: {
 
   return (
     <View style={styles.card}>
+      {/* Alias + tiempo */}
       <View style={styles.cardTop}>
         <TouchableOpacity
           style={styles.aliasRow}
@@ -86,15 +103,13 @@ function ConfessionCard({ item, index, navigation, onReact, onCommentOpen }: {
         <Text style={styles.time}>{timeAgo(item.createdAt)}</Text>
       </View>
 
+      {/* Texto */}
       <Text style={styles.text}>{item.text}</Text>
 
+      {/* Reacciones */}
       <View style={styles.reactionsRow}>
         {REACTIONS.map(({ type, label }) => (
-          <TouchableOpacity
-            key={type}
-            style={styles.reaction}
-            onPress={() => onReact(item.id, type)}
-          >
+          <TouchableOpacity key={type} style={styles.reaction} onPress={() => onReact(item.id, type)}>
             <Text style={styles.reactionEmoji}>{type}</Text>
             <Text style={styles.reactionLabel}>{label}</Text>
             {(reactionCounts[type] ?? 0) > 0 && (
@@ -104,35 +119,68 @@ function ConfessionCard({ item, index, navigation, onReact, onCommentOpen }: {
         ))}
       </View>
 
-      <TouchableOpacity style={styles.commentBtn} onPress={toggleComment}>
+      {/* Botón ver comentarios */}
+      <TouchableOpacity style={styles.commentBtn} onPress={toggleComments}>
         <Text style={styles.commentBtnText}>
-          💬 {commentCount} comentarios {commentOpen ? '▲' : '▼'}
+          💬 {commentCount} comentario{commentCount !== 1 ? 's' : ''} {commentsOpen ? '▲' : '▼'}
         </Text>
       </TouchableOpacity>
 
-      {commentOpen && (
-        <View style={styles.commentBox}>
-          <TextInput
-            style={styles.commentInput}
-            placeholder="Escribe tu comentario..."
-            placeholderTextColor="rgba(255,255,255,0.2)"
-            value={commentText}
-            onChangeText={setCommentText}
-            multiline
-            maxLength={300}
-            onFocus={() => onCommentOpen(index)}
-            autoFocus
-          />
-          <TouchableOpacity
-            style={[styles.sendBtn, (!commentText.trim() || sending) && styles.sendBtnDisabled]}
-            onPress={handleSendComment}
-            disabled={!commentText.trim() || sending}
-          >
-            {sending
-              ? <ActivityIndicator color="#080808" size="small" />
-              : <Text style={styles.sendText}>Enviar</Text>
-            }
-          </TouchableOpacity>
+      {/* Sección de comentarios */}
+      {commentsOpen && (
+        <View style={styles.commentsSection}>
+          {loadingComments ? (
+            <ActivityIndicator color="rgba(255,255,255,0.3)" style={{ marginVertical: 8 }} />
+          ) : comments.length === 0 ? (
+            <Text style={styles.noComments}>Sin comentarios aún.</Text>
+          ) : (
+            comments.map(c => (
+              <View key={c.id} style={styles.comment}>
+                <View style={styles.commentHeader}>
+                  <View style={styles.commentDot} />
+                  <Text style={styles.commentAlias}>{c.user.alias}</Text>
+                  <Text style={styles.commentTime}>{timeAgo(c.createdAt)}</Text>
+                </View>
+                <Text style={styles.commentText}>{c.text}</Text>
+              </View>
+            ))
+          )}
+
+          {/* Agregar comentario */}
+          {!inputOpen ? (
+            <TouchableOpacity style={styles.addCommentBtn} onPress={openInput}>
+              <Text style={styles.addCommentText}>＋ Agregar comentario</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.inputBox}>
+              <TextInput
+                style={styles.input}
+                placeholder="Escribe tu comentario..."
+                placeholderTextColor="rgba(255,255,255,0.2)"
+                value={commentText}
+                onChangeText={setCommentText}
+                multiline
+                maxLength={300}
+                autoFocus
+                onFocus={() => onCommentOpen(index)}
+              />
+              <View style={styles.inputActions}>
+                <TouchableOpacity onPress={() => { setInputOpen(false); Keyboard.dismiss(); }}>
+                  <Text style={styles.cancelText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.sendBtn, (!commentText.trim() || sending) && styles.sendBtnDisabled]}
+                  onPress={handleSend}
+                  disabled={!commentText.trim() || sending}
+                >
+                  {sending
+                    ? <ActivityIndicator color="#080808" size="small" />
+                    : <Text style={styles.sendText}>Enviar</Text>
+                  }
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
         </View>
       )}
     </View>
@@ -181,7 +229,6 @@ export default function FeedScreen({ navigation, route }: any) {
       <View style={styles.header}>
         <Text style={styles.logo}>susurro</Text>
       </View>
-
       <FlatList
         ref={flatListRef}
         data={confessions}
@@ -247,18 +294,34 @@ const styles = StyleSheet.create({
   reactionCount: { color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: '600' },
   commentBtn: { alignSelf: 'flex-start' },
   commentBtnText: { color: 'rgba(255,255,255,0.3)', fontSize: 13 },
-  commentBox: {
-    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 12,
-    padding: 12, gap: 10,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+  commentsSection: {
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)',
+    paddingTop: 12, gap: 10,
   },
-  commentInput: {
+  noComments: { color: 'rgba(255,255,255,0.2)', fontSize: 13, textAlign: 'center', paddingVertical: 4 },
+  comment: { gap: 4 },
+  commentHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  commentDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.25)' },
+  commentAlias: { color: 'rgba(255,255,255,0.45)', fontSize: 12, fontWeight: '500' },
+  commentTime: { color: 'rgba(255,255,255,0.2)', fontSize: 11, marginLeft: 'auto' },
+  commentText: { color: 'rgba(255,255,255,0.75)', fontSize: 14, lineHeight: 20, paddingLeft: 10 },
+  addCommentBtn: {
+    paddingVertical: 8, alignSelf: 'flex-start',
+  },
+  addCommentText: { color: 'rgba(255,255,255,0.25)', fontSize: 13 },
+  inputBox: { gap: 8 },
+  input: {
     color: '#fff', fontSize: 14, lineHeight: 21,
     minHeight: 70, textAlignVertical: 'top',
+    backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10,
+    paddingHorizontal: 12, paddingVertical: 10,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
   },
+  inputActions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 12 },
+  cancelText: { color: 'rgba(255,255,255,0.3)', fontSize: 14 },
   sendBtn: {
-    backgroundColor: '#fff', borderRadius: 10, paddingVertical: 10,
-    alignItems: 'center',
+    backgroundColor: '#fff', borderRadius: 10,
+    paddingHorizontal: 20, paddingVertical: 8, alignItems: 'center',
   },
   sendBtnDisabled: { opacity: 0.3 },
   sendText: { color: '#080808', fontSize: 14, fontWeight: '600' },
