@@ -26,4 +26,9 @@ export class UsersController {
   updateBio(@Request() req: any, @Body('bio') bio: string) {
     return this.service.updateBio(req.user.sub, bio);
   }
+
+  @Patch('me/push-token')
+  updatePushToken(@Request() req: any, @Body('token') token: string) {
+    return this.service.updatePushToken(req.user.sub, token);
+  }
 }

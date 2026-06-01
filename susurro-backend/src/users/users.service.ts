@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   async getProfile(alias: string, viewerId: string) {
     const user = await this.prisma.user.findUnique({
@@ -42,7 +46,19 @@ export class UsersService {
       await this.prisma.follow.delete({ where: { id: exists.id } });
       return { following: false };
     }
+
     await this.prisma.follow.create({ data: { followerId, followingId: target.id } });
+
+    if (target.pushToken) {
+      const follower = await this.prisma.user.findUnique({ where: { id: followerId }, select: { alias: true } });
+      await this.notifications.send({
+        to: target.pushToken,
+        title: 'Nuevo seguidor',
+        body: `@${follower?.alias} empezó a seguirte`,
+        data: { type: 'follow', alias: follower?.alias },
+      });
+    }
+
     return { following: true };
   }
 
@@ -51,6 +67,14 @@ export class UsersService {
       where: { id: userId },
       data: { bio },
       select: { alias: true, bio: true },
+    });
+  }
+
+  async updatePushToken(userId: string, token: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { pushToken: token },
+      select: { alias: true },
     });
   }
 }

@@ -34,4 +34,5 @@ export const usersApi = {
   updateBio: (bio: string) => api.patch('/users/me/bio', { bio }).then(r => r.data),
   follow: (alias: string) => api.post(`/users/${alias}/follow`).then(r => r.data),
   search: (q: string) => api.get(`/users/search?q=${encodeURIComponent(q)}`).then(r => r.data),
+  updatePushToken: (token: string) => api.patch('/users/me/push-token', { token }).then(r => r.data),
 };

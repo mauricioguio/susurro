@@ -14,6 +14,7 @@ import ProfileScreen from '../screens/main/ProfileScreen';
 import UserProfileScreen from '../screens/main/UserProfileScreen';
 import CommentsScreen from '../screens/main/CommentsScreen';
 import { useAuthStore } from '../store/authStore';
+import { useNotifications } from '../hooks/useNotifications';
 
 const Stack = createNativeStackNavigator();
 const Tab   = createBottomTabNavigator();
@@ -77,6 +78,7 @@ export default function AppNavigator() {
   const { token, isLoading, loadFromStorage } = useAuthStore();
 
   useEffect(() => { loadFromStorage(); }, []);
+  useNotifications(!!token);
 
   if (isLoading) {
     return (

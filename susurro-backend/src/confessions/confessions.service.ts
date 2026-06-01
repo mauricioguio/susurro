@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ConfessionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   async create(userId: string, text: string) {
     return this.prisma.confession.create({
@@ -15,18 +19,15 @@ export class ConfessionsService {
   async getFeed(userId: string, page = 1) {
     const take = 20;
     const skip = (page - 1) * take;
-
     const following = await this.prisma.follow.findMany({
       where: { followerId: userId },
       select: { followingId: true },
     });
     const ids = [userId, ...following.map(f => f.followingId)];
-
     return this.prisma.confession.findMany({
       where: { userId: { in: ids } },
       orderBy: { createdAt: 'desc' },
-      take,
-      skip,
+      take, skip,
       include: {
         user: { select: { alias: true } },
         _count: { select: { reactions: true, comments: true } },
@@ -40,8 +41,7 @@ export class ConfessionsService {
     const skip = (page - 1) * take;
     return this.prisma.confession.findMany({
       orderBy: { createdAt: 'desc' },
-      take,
-      skip,
+      take, skip,
       include: {
         user: { select: { alias: true } },
         _count: { select: { reactions: true, comments: true } },
@@ -55,13 +55,12 @@ export class ConfessionsService {
     const skip = (page - 1) * take;
     const user = await this.prisma.user.findUnique({ where: { alias } });
     if (!user) throw new NotFoundException('Usuario no encontrado');
-
     return this.prisma.confession.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: 'desc' },
-      take,
-      skip,
+      take, skip,
       include: {
+        user: { select: { alias: true } },
         _count: { select: { reactions: true, comments: true } },
         reactions: { where: { userId }, select: { type: true } },
       },
@@ -84,7 +83,24 @@ export class ConfessionsService {
       await this.prisma.reaction.delete({ where: { id: exists.id } });
       return { reacted: false };
     }
+
     await this.prisma.reaction.create({ data: { userId, confessionId, type } });
+
+    // Notify confession owner (if not reacting to own confession)
+    const confession = await this.prisma.confession.findUnique({
+      where: { id: confessionId },
+      include: { user: { select: { pushToken: true, id: true } } },
+    });
+    if (confession && confession.userId !== userId && confession.user.pushToken) {
+      const reactor = await this.prisma.user.findUnique({ where: { id: userId }, select: { alias: true } });
+      await this.notifications.send({
+        to: confession.user.pushToken,
+        title: `${type} en tu susurro`,
+        body: `@${reactor?.alias} reaccionó a tu confesión`,
+        data: { type: 'reaction', confessionId },
+      });
+    }
+
     return { reacted: true };
   }
 
@@ -97,10 +113,26 @@ export class ConfessionsService {
   }
 
   async addComment(confessionId: string, userId: string, text: string) {
-    return this.prisma.comment.create({
+    const comment = await this.prisma.comment.create({
       data: { confessionId, userId, text },
       include: { user: { select: { alias: true } } },
     });
+
+    // Notify confession owner (if not commenting on own confession)
+    const confession = await this.prisma.confession.findUnique({
+      where: { id: confessionId },
+      include: { user: { select: { pushToken: true, id: true } } },
+    });
+    if (confession && confession.userId !== userId && confession.user.pushToken) {
+      await this.notifications.send({
+        to: confession.user.pushToken,
+        title: 'Nuevo comentario',
+        body: `@${comment.user.alias}: ${text.slice(0, 60)}${text.length > 60 ? '…' : ''}`,
+        data: { type: 'comment', confessionId },
+      });
+    }
+
+    return comment;
   }
 
   async report(confessionId: string, userId: string, reason: string) {
