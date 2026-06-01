@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  ActivityIndicator, RefreshControl, TextInput, Alert,
+  ActivityIndicator, RefreshControl, TextInput, Alert, Keyboard,
 } from 'react-native';
 import { confessionsApi } from '../../services/api';
 
@@ -29,10 +29,12 @@ const REACTIONS = [
   { type: '💫', label: 'Me llegó' },
 ];
 
-function ConfessionCard({ item, navigation, onReact }: {
+function ConfessionCard({ item, index, navigation, onReact, onCommentOpen }: {
   item: Confession;
+  index: number;
   navigation: any;
   onReact: (id: string, type: string) => void;
+  onCommentOpen: (index: number) => void;
 }) {
   const [commentOpen, setCommentOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
@@ -44,6 +46,17 @@ function ConfessionCard({ item, navigation, onReact }: {
     return acc;
   }, {});
 
+  const toggleComment = () => {
+    const opening = !commentOpen;
+    setCommentOpen(opening);
+    if (opening) {
+      // pequeño delay para que el layout actualice antes de hacer scroll
+      setTimeout(() => onCommentOpen(index), 100);
+    } else {
+      Keyboard.dismiss();
+    }
+  };
+
   const handleSendComment = async () => {
     if (!commentText.trim()) return;
     setSending(true);
@@ -52,6 +65,7 @@ function ConfessionCard({ item, navigation, onReact }: {
       setCommentText('');
       setCommentCount(n => n + 1);
       setCommentOpen(false);
+      Keyboard.dismiss();
     } catch (e: any) {
       Alert.alert('Error', e?.response?.data?.message ?? 'No se pudo enviar');
     } finally {
@@ -90,12 +104,9 @@ function ConfessionCard({ item, navigation, onReact }: {
         ))}
       </View>
 
-      <TouchableOpacity
-        style={styles.commentBtn}
-        onPress={() => setCommentOpen(o => !o)}
-      >
-        <Text style={styles.commentText}>
-          💬 {commentCount} {commentOpen ? '▲' : '▼'}
+      <TouchableOpacity style={styles.commentBtn} onPress={toggleComment}>
+        <Text style={styles.commentBtnText}>
+          💬 {commentCount} comentarios {commentOpen ? '▲' : '▼'}
         </Text>
       </TouchableOpacity>
 
@@ -109,6 +120,7 @@ function ConfessionCard({ item, navigation, onReact }: {
             onChangeText={setCommentText}
             multiline
             maxLength={300}
+            onFocus={() => onCommentOpen(index)}
             autoFocus
           />
           <TouchableOpacity
@@ -132,6 +144,7 @@ export default function FeedScreen({ navigation, route }: any) {
   const [confessions, setConfessions] = useState<Confession[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const flatListRef = useRef<FlatList>(null);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -151,6 +164,10 @@ export default function FeedScreen({ navigation, route }: any) {
     } catch {}
   };
 
+  const scrollToCard = useCallback((index: number) => {
+    flatListRef.current?.scrollToIndex({ index, animated: true, viewOffset: 12 });
+  }, []);
+
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -166,10 +183,14 @@ export default function FeedScreen({ navigation, route }: any) {
       </View>
 
       <FlatList
+        ref={flatListRef}
         data={confessions}
         keyExtractor={i => i.id}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        onScrollToIndexFailed={() => {}}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -182,8 +203,14 @@ export default function FeedScreen({ navigation, route }: any) {
             {explore ? 'Aún no hay confesiones. ¡Sé el primero!' : 'Sigue a alguien para ver su feed.'}
           </Text>
         }
-        renderItem={({ item }) => (
-          <ConfessionCard item={item} navigation={navigation} onReact={handleReact} />
+        renderItem={({ item, index }) => (
+          <ConfessionCard
+            item={item}
+            index={index}
+            navigation={navigation}
+            onReact={handleReact}
+            onCommentOpen={scrollToCard}
+          />
         )}
       />
     </View>
@@ -209,7 +236,7 @@ const styles = StyleSheet.create({
   alias: { color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: '500' },
   time: { color: 'rgba(255,255,255,0.2)', fontSize: 12 },
   text: { color: 'rgba(255,255,255,0.85)', fontSize: 15, lineHeight: 24 },
-  reactionsRow: { flexDirection: 'row', gap: 8 },
+  reactionsRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   reaction: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     backgroundColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 10,
@@ -219,7 +246,7 @@ const styles = StyleSheet.create({
   reactionLabel: { color: 'rgba(255,255,255,0.35)', fontSize: 11 },
   reactionCount: { color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: '600' },
   commentBtn: { alignSelf: 'flex-start' },
-  commentText: { color: 'rgba(255,255,255,0.3)', fontSize: 13 },
+  commentBtnText: { color: 'rgba(255,255,255,0.3)', fontSize: 13 },
   commentBox: {
     backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 12,
     padding: 12, gap: 10,
@@ -227,7 +254,7 @@ const styles = StyleSheet.create({
   },
   commentInput: {
     color: '#fff', fontSize: 14, lineHeight: 21,
-    minHeight: 60, textAlignVertical: 'top',
+    minHeight: 70, textAlignVertical: 'top',
   },
   sendBtn: {
     backgroundColor: '#fff', borderRadius: 10, paddingVertical: 10,
