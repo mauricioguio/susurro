@@ -1,22 +1,11 @@
-import { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
+import {
+  View, Text, FlatList, TouchableOpacity, StyleSheet,
+  ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
+} from 'react-native';
 import { usersApi, confessionsApi } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
-
-type Confession = {
-  id: string;
-  text: string;
-  createdAt: string;
-  _count: { reactions: number; comments: number };
-};
-
-function timeAgo(dateStr: string): string {
-  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-  if (diff < 60) return 'ahora';
-  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
-  return `${Math.floor(diff / 86400)}d`;
-}
+import { ConfessionCard, Confession } from '../../components/ConfessionCard';
 
 export default function UserProfileScreen({ route, navigation }: any) {
   const { alias } = route.params;
@@ -25,6 +14,7 @@ export default function UserProfileScreen({ route, navigation }: any) {
   const [following, setFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const currentUser = useAuthStore(s => s.user);
+  const flatListRef = useRef<FlatList>(null);
 
   const isOwnProfile = currentUser?.alias === alias;
 
@@ -59,8 +49,20 @@ export default function UserProfileScreen({ route, navigation }: any) {
     }
   };
 
+  const handleReact = async (id: string, type: string) => {
+    try {
+      await confessionsApi.react(id, type);
+      const confs = await confessionsApi.getByUser(alias);
+      setConfessions(confs);
+    } catch {}
+  };
+
+  const scrollToCard = (index: number) => {
+    flatListRef.current?.scrollToIndex({ index, animated: true, viewOffset: 12 });
+  };
+
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.back}>← Volver</Text>
@@ -90,25 +92,28 @@ export default function UserProfileScreen({ route, navigation }: any) {
         <ActivityIndicator color="rgba(255,255,255,0.3)" style={{ marginTop: 40 }} />
       ) : (
         <FlatList
+          ref={flatListRef}
           data={confessions}
           keyExtractor={i => i.id}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <Text style={styles.empty}>Sin confesiones aún.</Text>
-          }
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <Text style={styles.cardText}>{item.text}</Text>
-              <View style={styles.cardFooter}>
-                <Text style={styles.cardMeta}>🤍 {item._count.reactions} · 💬 {item._count.comments}</Text>
-                <Text style={styles.cardTime}>{timeAgo(item.createdAt)}</Text>
-              </View>
-            </View>
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          automaticallyAdjustKeyboardInsets
+          onScrollToIndexFailed={() => {}}
+          ListEmptyComponent={<Text style={styles.empty}>Sin confesiones aún.</Text>}
+          renderItem={({ item, index }) => (
+            <ConfessionCard
+              item={item}
+              index={index}
+              navigation={navigation}
+              onReact={handleReact}
+              onCommentOpen={scrollToCard}
+            />
           )}
         />
       )}
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -123,9 +128,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', paddingHorizontal: 20, paddingVertical: 8,
     borderRadius: 20, minWidth: 90, alignItems: 'center',
   },
-  followingBtn: {
-    backgroundColor: 'transparent', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
-  },
+  followingBtn: { backgroundColor: 'transparent', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
   followText: { color: '#080808', fontSize: 14, fontWeight: '600' },
   followingText: { color: 'rgba(255,255,255,0.5)' },
   aliasRow: {
@@ -136,13 +139,5 @@ const styles = StyleSheet.create({
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.4)' },
   alias: { fontSize: 22, fontWeight: '300', color: '#fff', fontStyle: 'italic', letterSpacing: -0.5 },
   empty: { textAlign: 'center', color: 'rgba(255,255,255,0.25)', marginTop: 40, fontSize: 14 },
-  list: { padding: 16, gap: 10 },
-  card: {
-    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: 16,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)', gap: 12,
-  },
-  cardText: { color: 'rgba(255,255,255,0.8)', fontSize: 14, lineHeight: 22 },
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between' },
-  cardMeta: { color: 'rgba(255,255,255,0.25)', fontSize: 13 },
-  cardTime: { color: 'rgba(255,255,255,0.2)', fontSize: 12 },
+  list: { padding: 16, gap: 12 },
 });
