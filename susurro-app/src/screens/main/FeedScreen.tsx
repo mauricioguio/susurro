@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   ActivityIndicator, RefreshControl, TextInput, Alert, Keyboard,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { confessionsApi } from '../../services/api';
 
@@ -225,7 +226,10 @@ export default function FeedScreen({ navigation, route }: any) {
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <View style={styles.header}>
         <Text style={styles.logo}>susurro</Text>
       </View>
@@ -237,6 +241,7 @@ export default function FeedScreen({ navigation, route }: any) {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
         onScrollToIndexFailed={() => {}}
         refreshControl={
           <RefreshControl
@@ -260,7 +265,7 @@ export default function FeedScreen({ navigation, route }: any) {
           />
         )}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
