@@ -1,13 +1,17 @@
+import { useEffect } from 'react';
+import { View, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity } from 'react-native';
 
 import WelcomeScreen from '../screens/auth/WelcomeScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
+import LoginScreen from '../screens/auth/LoginScreen';
 import FeedScreen from '../screens/main/FeedScreen';
 import NewConfessionScreen from '../screens/main/NewConfessionScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
+import { useAuthStore } from '../store/authStore';
 
 const Stack = createNativeStackNavigator();
 const Tab   = createBottomTabNavigator();
@@ -54,10 +58,7 @@ function MainTabs({ navigation }: any) {
             </View>
           ),
           tabBarButton: (props) => (
-            <TouchableOpacity
-              {...props}
-              onPress={() => navigation.navigate('NewConfession')}
-            />
+            <TouchableOpacity {...props} onPress={() => navigation.navigate('NewConfession')} />
           ),
         }}
       />
@@ -71,16 +72,26 @@ function MainTabs({ navigation }: any) {
 }
 
 export default function AppNavigator() {
-  const isLoggedIn = false; // replace with auth state
+  const { token, isLoading, loadFromStorage } = useAuthStore();
+
+  useEffect(() => { loadFromStorage(); }, []);
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#080808', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator color="rgba(255,255,255,0.3)" />
+      </View>
+    );
+  }
 
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
-        {!isLoggedIn ? (
+        {!token ? (
           <>
             <Stack.Screen name="Welcome"  component={WelcomeScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
-            <Stack.Screen name="Login"    component={RegisterScreen} />
+            <Stack.Screen name="Login"    component={LoginScreen} />
           </>
         ) : (
           <Stack.Screen name="Main" component={MainTabs} />

@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { authApi } from '../../services/api';
+import { useAuthStore } from '../../store/authStore';
 
 type Props = { navigation: NativeStackNavigationProp<any> };
 
@@ -8,12 +10,26 @@ export default function RegisterScreen({ navigation }: Props) {
   const [alias, setAlias] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const login = useAuthStore(s => s.login);
+
+  const canSubmit = alias.trim() && email.trim() && password.length >= 8;
+
+  const handleRegister = async () => {
+    if (!canSubmit) return;
+    setLoading(true);
+    try {
+      const data = await authApi.register({ alias: alias.trim(), email: email.trim(), password });
+      await login(data.token, { id: data.id, alias: data.alias });
+    } catch (e: any) {
+      Alert.alert('Error', e?.response?.data?.message ?? 'No se pudo crear la cuenta');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <TouchableOpacity style={styles.back} onPress={() => navigation.goBack()}>
           <Text style={styles.backText}>← Volver</Text>
@@ -65,8 +81,12 @@ export default function RegisterScreen({ navigation }: Props) {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.btn}>
-          <Text style={styles.btnText}>Crear cuenta</Text>
+        <TouchableOpacity
+          style={[styles.btn, (!canSubmit || loading) && styles.btnDisabled]}
+          onPress={handleRegister}
+          disabled={!canSubmit || loading}
+        >
+          {loading ? <ActivityIndicator color="#080808" /> : <Text style={styles.btnText}>Crear cuenta</Text>}
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => navigation.navigate('Login')}>
@@ -99,13 +119,8 @@ const styles = StyleSheet.create({
   },
   hint: { fontSize: 11, color: 'rgba(255,255,255,0.25)', marginTop: 2 },
   divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.06)' },
-  btn: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
+  btn: { backgroundColor: '#fff', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 20 },
+  btnDisabled: { opacity: 0.4 },
   btnText: { color: '#080808', fontSize: 15, fontWeight: '600' },
   loginLink: { textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 13 },
   loginLinkBold: { color: 'rgba(255,255,255,0.7)', fontWeight: '600' },
