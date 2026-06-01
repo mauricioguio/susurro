@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   ActivityIndicator, RefreshControl, TextInput, Alert, Keyboard,
@@ -204,7 +205,7 @@ export default function FeedScreen({ navigation, route }: any) {
     finally { setLoading(false); setRefreshing(false); }
   }, [explore]);
 
-  useEffect(() => { load(); }, [load]);
+  useFocusEffect(useCallback(() => { load(true); }, [load]));
 
   const handleReact = async (id: string, type: string) => {
     try {

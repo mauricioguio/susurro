@@ -50,8 +50,8 @@ export default function UserProfileScreen({ route, navigation }: any) {
   const handleFollow = async () => {
     setFollowLoading(true);
     try {
-      await usersApi.follow(alias);
-      setFollowing(f => !f);
+      const result = await usersApi.follow(alias);
+      setFollowing(result.following);
     } catch (e: any) {
       Alert.alert('Error', e?.response?.data?.message ?? 'No se pudo seguir');
     } finally {
