@@ -84,10 +84,13 @@ export default function FeedScreen({ navigation, route }: any) {
           return (
             <View style={styles.card}>
               <View style={styles.cardTop}>
-                <View style={styles.aliasRow}>
+                <TouchableOpacity
+                  style={styles.aliasRow}
+                  onPress={() => navigation.navigate('UserProfile', { alias: item.user.alias })}
+                >
                   <View style={styles.dot} />
                   <Text style={styles.alias}>{item.user.alias}</Text>
-                </View>
+                </TouchableOpacity>
                 <Text style={styles.time}>{timeAgo(item.createdAt)}</Text>
               </View>
 
