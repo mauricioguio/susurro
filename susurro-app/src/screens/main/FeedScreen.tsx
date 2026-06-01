@@ -111,7 +111,10 @@ export default function FeedScreen({ navigation, route }: any) {
                     </TouchableOpacity>
                   ))}
                 </View>
-                <TouchableOpacity style={styles.commentBtn}>
+                <TouchableOpacity
+                  style={styles.commentBtn}
+                  onPress={() => navigation.navigate('Comments', { confessionId: item.id, confessionText: item.text })}
+                >
                   <Text style={styles.commentText}>💬 {item._count.comments}</Text>
                 </TouchableOpacity>
               </View>

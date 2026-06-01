@@ -12,6 +12,7 @@ import FeedScreen from '../screens/main/FeedScreen';
 import NewConfessionScreen from '../screens/main/NewConfessionScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
 import UserProfileScreen from '../screens/main/UserProfileScreen';
+import CommentsScreen from '../screens/main/CommentsScreen';
 import { useAuthStore } from '../store/authStore';
 
 const Stack = createNativeStackNavigator();
@@ -99,6 +100,7 @@ export default function AppNavigator() {
         )}
         <Stack.Screen name="NewConfession" component={NewConfessionScreen} options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="UserProfile" component={UserProfileScreen} />
+        <Stack.Screen name="Comments" component={CommentsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
