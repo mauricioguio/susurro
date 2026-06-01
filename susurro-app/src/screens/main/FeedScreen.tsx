@@ -173,7 +173,7 @@ function ConfessionCard({ item, index, navigation, onReact, onCommentOpen }: {
               >
                 {sending
                   ? <ActivityIndicator color="rgba(255,255,255,0.5)" size="small" />
-                  : <Text style={styles.sendIcon}>↑</Text>
+                  : <Text style={styles.sendIcon}>➤</Text>
                 }
               </TouchableOpacity>
             </View>
@@ -322,10 +322,10 @@ const styles = StyleSheet.create({
   },
   sendBtn: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: '#fff',
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 2,
   },
-  sendBtnDisabled: { opacity: 0.3 },
-  sendIcon: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  sendBtnDisabled: { opacity: 0.2 },
+  sendIcon: { color: '#080808', fontSize: 18 },
 });
