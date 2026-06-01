@@ -154,10 +154,10 @@ function ConfessionCard({ item, index, navigation, onReact, onCommentOpen }: {
               <Text style={styles.addCommentText}>＋ Agregar comentario</Text>
             </TouchableOpacity>
           ) : (
-            <View style={styles.inputBox}>
+            <View style={styles.inputRow}>
               <TextInput
                 style={styles.input}
-                placeholder="Escribe tu comentario..."
+                placeholder="Escribe un comentario..."
                 placeholderTextColor="rgba(255,255,255,0.2)"
                 value={commentText}
                 onChangeText={setCommentText}
@@ -166,21 +166,16 @@ function ConfessionCard({ item, index, navigation, onReact, onCommentOpen }: {
                 autoFocus
                 onFocus={() => onCommentOpen(index)}
               />
-              <View style={styles.inputActions}>
-                <TouchableOpacity onPress={() => { setInputOpen(false); Keyboard.dismiss(); }}>
-                  <Text style={styles.cancelText}>Cancelar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.sendBtn, (!commentText.trim() || sending) && styles.sendBtnDisabled]}
-                  onPress={handleSend}
-                  disabled={!commentText.trim() || sending}
-                >
-                  {sending
-                    ? <ActivityIndicator color="#080808" size="small" />
-                    : <Text style={styles.sendText}>Enviar</Text>
-                  }
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                style={[styles.sendBtn, (!commentText.trim() || sending) && styles.sendBtnDisabled]}
+                onPress={handleSend}
+                disabled={!commentText.trim() || sending}
+              >
+                {sending
+                  ? <ActivityIndicator color="rgba(255,255,255,0.5)" size="small" />
+                  : <Text style={styles.sendIcon}>↑</Text>
+                }
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -315,20 +310,22 @@ const styles = StyleSheet.create({
     paddingVertical: 8, alignSelf: 'flex-start',
   },
   addCommentText: { color: 'rgba(255,255,255,0.25)', fontSize: 13 },
-  inputBox: { gap: 8 },
+  inputRow: {
+    flexDirection: 'row', alignItems: 'flex-end', gap: 8,
+  },
   input: {
-    color: '#fff', fontSize: 14, lineHeight: 21,
-    minHeight: 70, textAlignVertical: 'top',
-    backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 10,
+    flex: 1, color: '#fff', fontSize: 14, lineHeight: 21,
+    minHeight: 40, maxHeight: 100, textAlignVertical: 'top',
+    backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20,
+    paddingHorizontal: 14, paddingVertical: 10,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
   },
-  inputActions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 12 },
-  cancelText: { color: 'rgba(255,255,255,0.3)', fontSize: 14 },
   sendBtn: {
-    backgroundColor: '#fff', borderRadius: 10,
-    paddingHorizontal: 20, paddingVertical: 8, alignItems: 'center',
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 2,
   },
   sendBtnDisabled: { opacity: 0.3 },
-  sendText: { color: '#080808', fontSize: 14, fontWeight: '600' },
+  sendIcon: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });
