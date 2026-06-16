@@ -49,8 +49,9 @@ export class UsersService {
 
     await this.prisma.follow.create({ data: { followerId, followingId: target.id } });
 
+    const follower = await this.prisma.user.findUnique({ where: { id: followerId }, select: { alias: true } });
+    await this.notifications.save(target.id, 'follow', `👤 @${follower?.alias} empezó a seguirte`);
     if (target.pushToken) {
-      const follower = await this.prisma.user.findUnique({ where: { id: followerId }, select: { alias: true } });
       await this.notifications.send({
         to: target.pushToken,
         title: 'Nuevo seguidor',

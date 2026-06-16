@@ -9,10 +9,15 @@ import WelcomeScreen from '../screens/auth/WelcomeScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import FeedScreen from '../screens/main/FeedScreen';
+import ExploreScreen from '../screens/main/ExploreScreen';
+import BookmarksScreen from '../screens/main/BookmarksScreen';
 import NewConfessionScreen from '../screens/main/NewConfessionScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
 import UserProfileScreen from '../screens/main/UserProfileScreen';
 import CommentsScreen from '../screens/main/CommentsScreen';
+import RepliesScreen from '../screens/main/RepliesScreen';
+import ConfessionDetailScreen from '../screens/main/ConfessionDetailScreen';
+import NotificationsScreen from '../screens/main/NotificationsScreen';
 import { useAuthStore } from '../store/authStore';
 import { useNotifications } from '../hooks/useNotifications';
 
@@ -38,12 +43,18 @@ function MainTabs({ navigation }: any) {
       <Tab.Screen
         name="Feed"
         component={FeedScreen}
-        options={{ tabBarLabel: 'Inicio', tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>🏠</Text> }}
+        options={{
+          tabBarLabel: 'Inicio',
+          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>🏠</Text>,
+        }}
       />
       <Tab.Screen
         name="Explore"
-        component={FeedScreen}
-        options={{ tabBarLabel: 'Explorar', tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>🔍</Text> }}
+        component={ExploreScreen}
+        options={{
+          tabBarLabel: 'Explorar',
+          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>🔍</Text>,
+        }}
       />
       <Tab.Screen
         name="NewTab"
@@ -66,9 +77,20 @@ function MainTabs({ navigation }: any) {
         }}
       />
       <Tab.Screen
+        name="Bookmarks"
+        component={BookmarksScreen}
+        options={{
+          tabBarLabel: 'Guardados',
+          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>🔖</Text>,
+        }}
+      />
+      <Tab.Screen
         name="Profile"
         component={ProfileScreen}
-        options={{ tabBarLabel: 'Perfil', tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>👤</Text> }}
+        options={{
+          tabBarLabel: 'Perfil',
+          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>👤</Text>,
+        }}
       />
     </Tab.Navigator>
   );
@@ -88,8 +110,18 @@ export default function AppNavigator() {
     );
   }
 
+  const linking = {
+    prefixes: ['susurro://', 'exp://'],
+    config: {
+      screens: {
+        ConfessionDetail: 'confession/:confessionId',
+        Main: { screens: { Feed: 'feed', Explore: 'explore' } },
+      },
+    },
+  };
+
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
         {!token ? (
           <>
@@ -103,6 +135,9 @@ export default function AppNavigator() {
         <Stack.Screen name="NewConfession" component={NewConfessionScreen} options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="UserProfile" component={UserProfileScreen} />
         <Stack.Screen name="Comments" component={CommentsScreen} />
+        <Stack.Screen name="Replies" component={RepliesScreen} />
+        <Stack.Screen name="ConfessionDetail" component={ConfessionDetailScreen} />
+        <Stack.Screen name="Notifications" component={NotificationsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

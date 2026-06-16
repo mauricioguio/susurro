@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 
 interface PushMessage {
   to: string;
@@ -9,6 +10,8 @@ interface PushMessage {
 
 @Injectable()
 export class NotificationsService {
+  constructor(private readonly prisma: PrismaService) {}
+
   async send(message: PushMessage) {
     if (!message.to?.startsWith('ExponentPushToken')) return;
     try {
@@ -23,8 +26,34 @@ export class NotificationsService {
           data: message.data ?? {},
         }),
       });
-    } catch {
-      // Notifications are non-critical — fail silently
-    }
+    } catch {}
+  }
+
+  async save(userId: string, type: string, message: string, confessionId?: string) {
+    try {
+      await this.prisma.notification.create({
+        data: { userId, type, message, confessionId: confessionId ?? null },
+      });
+    } catch {}
+  }
+
+  async getForUser(userId: string) {
+    return this.prisma.notification.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+  }
+
+  async getUnreadCount(userId: string) {
+    return this.prisma.notification.count({ where: { userId, read: false } });
+  }
+
+  async markAllRead(userId: string) {
+    await this.prisma.notification.updateMany({
+      where: { userId, read: false },
+      data: { read: true },
+    });
+    return { ok: true };
   }
 }

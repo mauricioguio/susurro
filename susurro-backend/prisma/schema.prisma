@@ -16,12 +16,30 @@ model User {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  confessions Confession[]
-  comments    Comment[]
-  reactions   Reaction[]
-  following   Follow[]     @relation("follower")
-  followers   Follow[]     @relation("following")
-  reports     Report[]
+  confessions   Confession[]
+  comments      Comment[]
+  reactions     Reaction[]
+  following     Follow[]       @relation("follower")
+  followers     Follow[]       @relation("following")
+  reports       Report[]
+  bookmarks     Bookmark[]
+  pollVotes     PollVote[]
+  notifications Notification[]
+}
+
+model Notification {
+  id           String   @id @default(cuid())
+  type         String
+  message      String
+  read         Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  userId       String
+  confessionId String?
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, read])
 }
 
 model Follow {
@@ -37,19 +55,56 @@ model Follow {
 }
 
 model Confession {
-  id        String   @id @default(cuid())
-  text      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String    @id @default(cuid())
+  text         String?
+  audioUrl     String?
+  tags         String[]  @default([])
+  pollQuestion String?
+  expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
+  parentId  String?
   userId    String
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent    Confession? @relation("ConfessionReplies", fields: [parentId], references: [id], onDelete: SetNull)
+  replies   Confession[] @relation("ConfessionReplies")
   comments  Comment[]
   reactions Reaction[]
   reports   Report[]
+  bookmarks Bookmark[]
+  pollVotes PollVote[]
 
   @@index([userId])
   @@index([createdAt])
+  @@index([parentId])
+}
+
+model Bookmark {
+  id           String     @id @default(cuid())
+  createdAt    DateTime   @default(now())
+
+  userId       String
+  confessionId String
+  user         User       @relation(fields: [userId],       references: [id], onDelete: Cascade)
+  confession   Confession @relation(fields: [confessionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, confessionId])
+  @@index([userId])
+}
+
+model PollVote {
+  id           String     @id @default(cuid())
+  vote         Boolean
+  createdAt    DateTime   @default(now())
+
+  userId       String
+  confessionId String
+  user         User       @relation(fields: [userId],       references: [id], onDelete: Cascade)
+  confession   Confession @relation(fields: [confessionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, confessionId])
+  @@index([confessionId])
 }
 
 model Comment {
