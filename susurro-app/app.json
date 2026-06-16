@@ -23,6 +23,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "ed4b5937-23df-4ed9-84f0-157f27ae1063"
+      }
+    },
+    "owner": "susurroapp"
   }
 }
