@@ -55,7 +55,7 @@ export class AuthService {
     });
 
     await this.resend.emails.send({
-      from: 'Susurro <onboarding@resend.dev>',
+      from: 'Susurro <noreply@guiiouniformes.com>',
       to: email,
       subject: 'Tu código para restablecer contraseña',
       html: `
