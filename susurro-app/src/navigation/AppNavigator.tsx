@@ -1,10 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text, TouchableOpacity } from 'react-native';
 
+import OnboardingScreen from '../screens/auth/OnboardingScreen';
 import WelcomeScreen from '../screens/auth/WelcomeScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -98,11 +100,15 @@ function MainTabs({ navigation }: any) {
 
 export default function AppNavigator() {
   const { token, isLoading, loadFromStorage } = useAuthStore();
+  const [onboarded, setOnboarded] = useState<boolean | null>(null);
 
-  useEffect(() => { loadFromStorage(); }, []);
+  useEffect(() => {
+    loadFromStorage();
+    AsyncStorage.getItem('onboarded').then(v => setOnboarded(v === 'true'));
+  }, []);
   useNotifications(!!token);
 
-  if (isLoading) {
+  if (isLoading || onboarded === null) {
     return (
       <View style={{ flex: 1, backgroundColor: '#080808', justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator color="rgba(255,255,255,0.3)" />
@@ -125,6 +131,7 @@ export default function AppNavigator() {
       <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
         {!token ? (
           <>
+            {!onboarded && <Stack.Screen name="Onboarding" component={OnboardingScreen} />}
             <Stack.Screen name="Welcome"  component={WelcomeScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
             <Stack.Screen name="Login"    component={LoginScreen} />
