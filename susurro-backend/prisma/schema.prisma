@@ -12,8 +12,10 @@ model User {
   password    String
   alias       String   @unique
   bio         String?
-  pushToken   String?
-  createdAt   DateTime @default(now())
+  pushToken        String?
+  resetCode        String?
+  resetCodeExpiry  DateTime?
+  createdAt        DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   confessions   Confession[]

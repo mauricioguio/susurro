@@ -8,6 +8,7 @@ import { Text, TouchableOpacity } from 'react-native';
 
 import OnboardingScreen from '../screens/auth/OnboardingScreen';
 import WelcomeScreen from '../screens/auth/WelcomeScreen';
+import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import FeedScreen from '../screens/main/FeedScreen';
@@ -132,9 +133,10 @@ export default function AppNavigator() {
         {!token ? (
           <>
             {!onboarded && <Stack.Screen name="Onboarding" component={OnboardingScreen} />}
-            <Stack.Screen name="Welcome"  component={WelcomeScreen} />
-            <Stack.Screen name="Register" component={RegisterScreen} />
-            <Stack.Screen name="Login"    component={LoginScreen} />
+            <Stack.Screen name="Welcome"        component={WelcomeScreen} />
+            <Stack.Screen name="Register"       component={RegisterScreen} />
+            <Stack.Screen name="Login"          component={LoginScreen} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
           </>
         ) : (
           <Stack.Screen name="Main" component={MainTabs} />
