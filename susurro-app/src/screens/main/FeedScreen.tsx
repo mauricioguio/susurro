@@ -50,12 +50,12 @@ function AudioPlayer({ audioUrl }: { audioUrl: string }) {
     <TouchableOpacity style={styles.audioPlayer} onPress={toggle} activeOpacity={0.7}>
       {loading
         ? <ActivityIndicator color="rgba(255,255,255,0.5)" />
-        : <Text style={styles.audioIcon}>{playing ? '⏸' : '▶'}</Text>
+        : <Ionicons name={playing ? 'pause' : 'play'} size={22} color="#fff" />
       }
       <View style={styles.audioBar}>
         <View style={[styles.audioFill, playing && { width: '60%' }]} />
       </View>
-      <Text style={styles.audioLabel}>🎙️ nota de voz</Text>
+      <Ionicons name="mic-outline" size={14} color="rgba(255,255,255,0.3)" />
     </TouchableOpacity>
   );
 }
@@ -258,12 +258,12 @@ function TikTokCard({ item, height, navigation, onReact, onOpenComments }: {
         <View style={styles.sideSep} />
 
         <TouchableOpacity style={styles.sideAction} onPress={() => onOpenComments(item)}>
-          <Text style={styles.sideEmoji}>💬</Text>
+          <Ionicons name="chatbubble-outline" size={24} color="rgba(255,255,255,0.75)" />
           {item._count.comments > 0 && <Text style={styles.sideCount}>{item._count.comments}</Text>}
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.sideAction} onPress={handleBookmark}>
-          <Text style={[styles.sideEmoji, !bookmarked && styles.sideEmojiDim]}>🔖</Text>
+          <Ionicons name={bookmarked ? 'bookmark' : 'bookmark-outline'} size={24} color={bookmarked ? '#fff' : 'rgba(255,255,255,0.35)'} />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.sideAction} onPress={handleShare}>
@@ -273,7 +273,7 @@ function TikTokCard({ item, height, navigation, onReact, onOpenComments }: {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.sideAction} onPress={handleReport}>
-          <Text style={[styles.sideEmoji, styles.sideEmojiDim]}>🚩</Text>
+          <Ionicons name="flag-outline" size={22} color="rgba(255,255,255,0.3)" />
         </TouchableOpacity>
       </View>
     </View>
@@ -360,7 +360,7 @@ export default function FeedScreen({ navigation }: any) {
           style={styles.bellBtn}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Text style={styles.bellIcon}>🔔</Text>
+          <Ionicons name="notifications-outline" size={22} color="rgba(255,255,255,0.85)" />
           {unreadCount > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
@@ -384,7 +384,7 @@ export default function FeedScreen({ navigation }: any) {
           style={styles.composeBtn}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Text style={styles.composeIcon}>✏️</Text>
+          <Ionicons name="create-outline" size={22} color="rgba(255,255,255,0.85)" />
         </TouchableOpacity>
       </View>
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { confessionsApi, usersApi } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import * as ImagePicker from 'expo-image-picker';
@@ -67,19 +68,7 @@ export default function ProfileScreen() {
     ]);
   };
 
-  const handlePickAvatar = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permiso requerido', 'Necesitamos acceso a tu galería para cambiar la foto.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.4,
-      base64: true,
-    });
+  const uploadImage = async (result: ImagePicker.ImagePickerResult) => {
     if (result.canceled || !result.assets[0].base64) return;
     const base64 = `data:image/jpeg;base64,${result.assets[0].base64}`;
     setUploadingAvatar(true);
@@ -93,6 +82,41 @@ export default function ProfileScreen() {
     }
   };
 
+  const handlePickAvatar = () => {
+    Alert.alert('Foto de perfil', '', [
+      {
+        text: '📷 Tomar foto',
+        onPress: async () => {
+          const { status } = await ImagePicker.requestCameraPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert('Permiso requerido', 'Necesitamos acceso a la cámara.');
+            return;
+          }
+          const result = await ImagePicker.launchCameraAsync({
+            allowsEditing: true, aspect: [1, 1], quality: 0.4, base64: true,
+          });
+          uploadImage(result);
+        },
+      },
+      {
+        text: '🖼 Elegir de galería',
+        onPress: async () => {
+          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert('Permiso requerido', 'Necesitamos acceso a tu galería.');
+            return;
+          }
+          const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true, aspect: [1, 1], quality: 0.4, base64: true,
+          });
+          uploadImage(result);
+        },
+      },
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -104,18 +128,22 @@ export default function ProfileScreen() {
 
       {/* Avatar */}
       <TouchableOpacity style={styles.avatarSection} onPress={handlePickAvatar} disabled={uploadingAvatar}>
-        <View style={styles.avatarCircle}>
-          {avatarUri
-            ? <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
-            : <Text style={styles.avatarPlaceholder}>{user?.alias?.[0]?.toUpperCase() ?? '?'}</Text>
-          }
-          {uploadingAvatar && (
-            <View style={styles.avatarOverlay}>
-              <ActivityIndicator color="#fff" size="small" />
-            </View>
-          )}
+        <View style={styles.avatarWrapper}>
+          <View style={styles.avatarCircle}>
+            {avatarUri
+              ? <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+              : <Text style={styles.avatarPlaceholder}>{user?.alias?.[0]?.toUpperCase() ?? '?'}</Text>
+            }
+            {uploadingAvatar && (
+              <View style={styles.avatarOverlay}>
+                <ActivityIndicator color="#fff" size="small" />
+              </View>
+            )}
+          </View>
+          <View style={styles.editBadge}>
+            <Ionicons name="pencil" size={10} color="#080808" />
+          </View>
         </View>
-        <Text style={styles.avatarHint}>Toca para cambiar foto</Text>
       </TouchableOpacity>
 
       <View style={styles.stats}>
@@ -150,7 +178,7 @@ export default function ProfileScreen() {
                 <Text style={styles.cardMeta}>🤍 {item._count.reactions} · 💬 {item._count.comments}</Text>
                 <Text style={styles.cardTime}>{timeAgo(item.createdAt)}</Text>
                 <TouchableOpacity onPress={() => handleDelete(item.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Text style={styles.deleteBtn}>🗑</Text>
+                  <Ionicons name="trash-outline" size={16} color="rgba(255,255,255,0.3)" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -170,7 +198,8 @@ const styles = StyleSheet.create({
   aliasTitle: { fontSize: 22, fontWeight: '300', color: '#fff', fontStyle: 'italic', letterSpacing: -0.5 },
   logoutBtn: { padding: 4 },
   logoutText: { color: 'rgba(255,255,255,0.35)', fontSize: 13 },
-  avatarSection: { alignItems: 'center', paddingVertical: 16, gap: 8 },
+  avatarSection: { alignItems: 'center', paddingVertical: 16 },
+  avatarWrapper: { position: 'relative' },
   avatarCircle: {
     width: 72, height: 72, borderRadius: 36,
     backgroundColor: 'rgba(255,255,255,0.08)',
@@ -183,7 +212,13 @@ const styles = StyleSheet.create({
     position: 'absolute', width: 72, height: 72, borderRadius: 36,
     backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center',
   },
-  avatarHint: { color: 'rgba(255,255,255,0.2)', fontSize: 11 },
+  editBadge: {
+    position: 'absolute', bottom: 0, right: 0,
+    width: 24, height: 24, borderRadius: 12,
+    backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: '#080808',
+  },
+  editIcon: { fontSize: 11 },
   stats: {
     flexDirection: 'row', paddingHorizontal: 20, paddingVertical: 16,
     borderTopWidth: 1, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.06)',

@@ -4,14 +4,15 @@ import {
   View, Text, FlatList, StyleSheet, ActivityIndicator,
   TouchableOpacity, RefreshControl,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { notificationsApi, AppNotification } from '../../services/api';
 import { timeAgo } from '../../components/ConfessionCard';
 
-const TYPE_ICON: Record<string, string> = {
-  comment: '💬',
-  reaction: '🤍',
-  follow: '👤',
-  reply: '🔗',
+const TYPE_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
+  comment: 'chatbubble-outline',
+  reaction: 'heart-outline',
+  follow:   'person-add-outline',
+  reply:    'link-outline',
 };
 
 export default function NotificationsScreen({ navigation }: any) {
@@ -59,7 +60,7 @@ export default function NotificationsScreen({ navigation }: any) {
           }
           ListEmptyComponent={
             <View style={styles.center}>
-              <Text style={styles.emptyIcon}>🔔</Text>
+              <Ionicons name="notifications-outline" size={40} color="rgba(255,255,255,0.2)" />
               <Text style={styles.empty}>No tienes notificaciones aún.</Text>
               <Text style={styles.emptySub}>Aquí verás reacciones, comentarios y nuevos seguidores.</Text>
             </View>
@@ -71,7 +72,7 @@ export default function NotificationsScreen({ navigation }: any) {
               activeOpacity={item.confessionId ? 0.7 : 1}
             >
               <View style={styles.iconWrap}>
-                <Text style={styles.icon}>{TYPE_ICON[item.type] ?? '🔔'}</Text>
+                <Ionicons name={TYPE_ICON[item.type] ?? 'notifications-outline'} size={20} color="rgba(255,255,255,0.6)" />
                 {!item.read && <View style={styles.unreadDot} />}
               </View>
               <View style={styles.content}>

@@ -5,6 +5,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import OnboardingScreen from '../screens/auth/OnboardingScreen';
 import WelcomeScreen from '../screens/auth/WelcomeScreen';
@@ -48,7 +49,7 @@ function MainTabs({ navigation }: any) {
         component={FeedScreen}
         options={{
           tabBarLabel: 'Inicio',
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>🏠</Text>,
+          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'home' : 'home-outline'} size={22} color={color} />,
         }}
       />
       <Tab.Screen
@@ -56,7 +57,7 @@ function MainTabs({ navigation }: any) {
         component={ExploreScreen}
         options={{
           tabBarLabel: 'Explorar',
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>🔍</Text>,
+          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'search' : 'search-outline'} size={22} color={color} />,
         }}
       />
       <Tab.Screen
@@ -84,7 +85,7 @@ function MainTabs({ navigation }: any) {
         component={BookmarksScreen}
         options={{
           tabBarLabel: 'Guardados',
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>🔖</Text>,
+          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'bookmark' : 'bookmark-outline'} size={22} color={color} />,
         }}
       />
       <Tab.Screen
@@ -92,7 +93,7 @@ function MainTabs({ navigation }: any) {
         component={ProfileScreen}
         options={{
           tabBarLabel: 'Perfil',
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>👤</Text>,
+          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'person' : 'person-outline'} size={22} color={color} />,
         }}
       />
     </Tab.Navigator>

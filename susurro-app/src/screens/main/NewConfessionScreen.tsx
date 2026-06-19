@@ -5,6 +5,7 @@ import {
   ScrollView, Dimensions,
 } from 'react-native';
 import { Audio } from 'expo-av';
+import { Ionicons } from '@expo/vector-icons';
 import { confessionsApi, API_BASE } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { TAGS } from '../../components/ConfessionCard';
@@ -173,7 +174,7 @@ export default function NewConfessionScreen({ navigation, route }: any) {
         {/* Respondiendo a banner */}
         {parentId && (
           <View style={styles.replyBanner}>
-            <Text style={styles.replyBannerLabel}>🔗 Respondiendo a una confesión anónima</Text>
+            <Text style={styles.replyBannerLabel}>Respondiendo a una confesión anónima</Text>
             {parentPreview && (
               <Text style={styles.replyBannerPreview} numberOfLines={2}>"{parentPreview}"</Text>
             )}
@@ -185,7 +186,7 @@ export default function NewConfessionScreen({ navigation, route }: any) {
           {(['text', 'voice'] as InputMode[]).map(m => (
             <TouchableOpacity key={m} style={[styles.modeBtn, mode === m && styles.modeBtnActive]} onPress={() => setMode(m)}>
               <Text style={[styles.modeTxt, mode === m && styles.modeTxtActive]}>
-                {m === 'text' ? '✍️ Texto' : '🎙️ Voz'}
+                {m === 'text' ? 'Texto' : 'Voz'}
               </Text>
             </TouchableOpacity>
           ))}
@@ -195,7 +196,10 @@ export default function NewConfessionScreen({ navigation, route }: any) {
         <View style={styles.aliasRow}>
           <View style={styles.dot} />
           <Text style={styles.alias}>{user?.alias ?? 'tú'}</Text>
-          <View style={styles.anonBadge}><Text style={styles.anonText}>🔒 Anónimo</Text></View>
+          <View style={styles.anonBadge}>
+            <Ionicons name="lock-closed-outline" size={10} color="rgba(255,255,255,0.4)" />
+            <Text style={styles.anonText}> Anónimo</Text>
+          </View>
         </View>
 
         {/* Input area */}
@@ -218,7 +222,7 @@ export default function NewConfessionScreen({ navigation, route }: any) {
                   style={[styles.recordBtn, isRecording && styles.recordBtnActive]}
                   onPress={isRecording ? stopRecording : startRecording}
                 >
-                  <Text style={styles.recordIcon}>{isRecording ? '⏹' : '🎙️'}</Text>
+                  <Ionicons name={isRecording ? 'stop' : 'mic-outline'} size={32} color="#fff" />
                 </TouchableOpacity>
                 <Text style={styles.recordLabel}>
                   {isRecording ? `${recordSecs}s / ${MAX_RECORD_SECS}s` : 'Toca para grabar'}
@@ -232,7 +236,7 @@ export default function NewConfessionScreen({ navigation, route }: any) {
             ) : (
               <View style={styles.voicePreview}>
                 <TouchableOpacity style={styles.playBtn} onPress={playPreview}>
-                  <Text style={styles.playIcon}>{playing ? '⏸' : '▶'}</Text>
+                  <Ionicons name={playing ? 'pause' : 'play'} size={18} color="#080808" />
                 </TouchableOpacity>
                 <View style={styles.previewBar}>
                   <View style={styles.previewFill} />
@@ -327,7 +331,10 @@ export default function NewConfessionScreen({ navigation, route }: any) {
               <View style={[styles.toggleThumb, hasPoll && styles.toggleThumbActive]} />
             </View>
             <View style={styles.pollInfo}>
-              <Text style={styles.sectionLabel}>📊 Encuesta anónima</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="bar-chart-outline" size={14} color="rgba(255,255,255,0.6)" />
+                <Text style={styles.sectionLabel}>Encuesta anónima</Text>
+              </View>
               <Text style={styles.pollHint}>Pregunta "¿A alguien más le pasa?" con Sí / No</Text>
             </View>
           </TouchableOpacity>

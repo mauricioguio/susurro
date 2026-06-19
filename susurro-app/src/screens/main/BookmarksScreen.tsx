@@ -3,6 +3,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import {
   View, Text, FlatList, StyleSheet, ActivityIndicator, RefreshControl, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { confessionsApi } from '../../services/api';
 import { ConfessionCard, Confession } from '../../components/ConfessionCard';
 
@@ -61,9 +62,9 @@ export default function BookmarksScreen({ navigation }: any) {
           }
           ListEmptyComponent={
             <View style={styles.center}>
-              <Text style={styles.emptyIcon}>🔖</Text>
+              <Ionicons name="bookmark-outline" size={40} color="rgba(255,255,255,0.2)" />
               <Text style={styles.empty}>No tienes confesiones guardadas aún.</Text>
-              <Text style={styles.emptySub}>Toca 🏷️ en cualquier confesión para guardarla.</Text>
+              <Text style={styles.emptySub}>Toca el ícono guardar en cualquier confesión.</Text>
             </View>
           }
           renderItem={({ item, index }) => (

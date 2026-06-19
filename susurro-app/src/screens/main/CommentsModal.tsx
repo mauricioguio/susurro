@@ -5,6 +5,7 @@ import {
   StyleSheet, Dimensions,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { confessionsApi } from '../../services/api';
 import { Confession, timeAgo } from '../../components/ConfessionCard';
 
@@ -56,7 +57,10 @@ export default function CommentsModal({ visible, confession, onClose }: {
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => { Keyboard.dismiss(); onClose(); }} />
       <KeyboardAvoidingView style={styles.sheet} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.handle} />
-        <Text style={styles.title}>💬 {count} comentario{count !== 1 ? 's' : ''}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 }}>
+          <Ionicons name="chatbubble-outline" size={14} color="rgba(255,255,255,0.5)" />
+          <Text style={styles.title}>{count} comentario{count !== 1 ? 's' : ''}</Text>
+        </View>
 
         {loading ? (
           <ActivityIndicator color="rgba(255,255,255,0.3)" style={{ marginTop: 24 }} />
@@ -96,7 +100,7 @@ export default function CommentsModal({ visible, confession, onClose }: {
           >
             {sending
               ? <ActivityIndicator color="rgba(255,255,255,0.5)" size="small" />
-              : <Text style={styles.sendIcon}>➤</Text>
+              : <Ionicons name="arrow-forward" size={18} color="#080808" />
             }
           </TouchableOpacity>
         </View>
@@ -112,7 +116,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, paddingBottom: 32, maxHeight: H * 0.75,
   },
   handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.15)', alignSelf: 'center', marginTop: 12, marginBottom: 16 },
-  title: { color: 'rgba(255,255,255,0.5)', fontSize: 14, marginBottom: 16 },
+  title: { color: 'rgba(255,255,255,0.5)', fontSize: 14 },
   list: { maxHeight: H * 0.45 },
   empty: { color: 'rgba(255,255,255,0.2)', fontSize: 13, textAlign: 'center', paddingVertical: 24 },
   comment: { gap: 4, marginBottom: 14 },

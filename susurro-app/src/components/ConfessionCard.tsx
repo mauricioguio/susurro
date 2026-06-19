@@ -4,6 +4,7 @@ import {
   ActivityIndicator, TextInput, Alert, Keyboard, Share,
 } from 'react-native';
 import { Audio } from 'expo-av';
+import { Ionicons } from '@expo/vector-icons';
 import { confessionsApi } from '../services/api';
 
 export type PollResult = { yes: number; no: number; userVote: boolean | null };
@@ -93,12 +94,12 @@ export function MiniAudioPlayer({ audioUrl }: { audioUrl: string }) {
     <TouchableOpacity style={audioStyles.player} onPress={toggle} activeOpacity={0.7}>
       {loading
         ? <ActivityIndicator color="rgba(255,255,255,0.5)" size="small" />
-        : <Text style={audioStyles.icon}>{playing ? '⏸' : '▶'}</Text>
+        : <Ionicons name={playing ? 'pause' : 'play'} size={16} color="#fff" />
       }
       <View style={audioStyles.bar}>
         <View style={[audioStyles.fill, playing && { width: '70%' }]} />
       </View>
-      <Text style={audioStyles.label}>🎙️</Text>
+      <Ionicons name="mic-outline" size={14} color="rgba(255,255,255,0.3)" />
     </TouchableOpacity>
   );
 }
@@ -229,7 +230,11 @@ export function ConfessionCard({ item, index = 0, navigation, onReact, onComment
         <View style={styles.badges}>
           {item.expiresAt && <Text style={styles.expiry}>{expiresIn(item.expiresAt)}</Text>}
           <TouchableOpacity onPress={toggleBookmark}>
-            <Text style={[styles.bookmark, bookmarked && styles.bookmarkActive]}>{bookmarked ? '🔖' : '🏷️'}</Text>
+            <Ionicons
+              name={bookmarked ? 'bookmark' : 'bookmark-outline'}
+              size={18}
+              color={bookmarked ? '#fff' : 'rgba(255,255,255,0.3)'}
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -296,16 +301,19 @@ export function ConfessionCard({ item, index = 0, navigation, onReact, onComment
       {/* Actions row */}
       <View style={styles.actionsRow}>
         <TouchableOpacity style={styles.commentBtn} onPress={toggleComments}>
-          <Text style={styles.commentBtnText}>💬 {commentCount} {commentsOpen ? '▲' : '▼'}</Text>
+          <Ionicons name="chatbubble-outline" size={14} color="rgba(255,255,255,0.3)" />
+          <Text style={styles.commentBtnText}> {commentCount} {commentsOpen ? '▲' : '▼'}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.chainBtn}
           onPress={() => navigation.navigate('NewConfession', { parentId: item.id, parentPreview: item.text })}
         >
-          <Text style={styles.chainBtnText}>🔗 susurrar</Text>
+          <Ionicons name="link-outline" size={13} color="rgba(255,255,255,0.35)" />
+          <Text style={styles.chainBtnText}> susurrar</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.chainBtn} onPress={shareConfession}>
-          <Text style={styles.chainBtnText}>↗ compartir</Text>
+          <Ionicons name="arrow-redo-outline" size={13} color="rgba(255,255,255,0.35)" />
+          <Text style={styles.chainBtnText}> compartir</Text>
         </TouchableOpacity>
         {item.replyCount > 0 && (
           <TouchableOpacity onPress={() => navigation.navigate('Replies', { confessionId: item.id })}>
@@ -357,7 +365,7 @@ export function ConfessionCard({ item, index = 0, navigation, onReact, onComment
                 onPress={handleSend}
                 disabled={!commentText.trim() || sending}
               >
-                {sending ? <ActivityIndicator color="rgba(255,255,255,0.5)" size="small" /> : <Text style={styles.sendIcon}>➤</Text>}
+                {sending ? <ActivityIndicator color="rgba(255,255,255,0.5)" size="small" /> : <Ionicons name="arrow-forward" size={18} color="#080808" />}
               </TouchableOpacity>
             </View>
           )}
@@ -412,7 +420,7 @@ const styles = StyleSheet.create({
   reactionLabel: { color: 'rgba(255,255,255,0.35)', fontSize: 11 },
   reactionCount: { color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: '600' },
   actionsRow: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
-  commentBtn: { alignSelf: 'flex-start' },
+  commentBtn: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start' },
   commentBtnText: { color: 'rgba(255,255,255,0.3)', fontSize: 13 },
   chainBtn: {
     flexDirection: 'row', alignItems: 'center',
