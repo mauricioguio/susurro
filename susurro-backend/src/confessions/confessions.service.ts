@@ -135,12 +135,17 @@ export class ConfessionsService {
 
   async search(userId: string, q: string) {
     if (!q.trim()) return [];
+    const tag = q.startsWith('#') ? q : `#${q}`;
     const rows = await this.prisma.confession.findMany({
       where: {
-        ...this.notExpired(),
-        OR: [
-          { text: { contains: q, mode: 'insensitive' } },
-          { tags: { has: q.startsWith('#') ? q : `#${q}` } },
+        AND: [
+          this.notExpired(),
+          {
+            OR: [
+              { text: { contains: q, mode: 'insensitive' } },
+              { tags: { has: tag } },
+            ],
+          },
         ],
       },
       orderBy: { createdAt: 'desc' },
