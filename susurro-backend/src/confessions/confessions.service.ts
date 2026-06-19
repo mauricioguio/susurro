@@ -4,7 +4,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 
 const CONFESSION_INCLUDE = (userId: string) => ({
   user: { select: { alias: true } },
-  _count: { select: { reactions: true, comments: true, replies: true } },
+  _count: { select: { reactions: true, comments: true, replies: true, bookmarks: true } },
   reactions: { where: { userId }, select: { type: true } },
   bookmarks: { where: { userId }, select: { id: true } },
   pollVotes: { select: { vote: true, userId: true } },
@@ -75,20 +75,39 @@ export class ConfessionsService {
   }
 
   async getFeed(userId: string, page = 1) {
-    const take = 20;
-    const skip = (page - 1) * take;
+    const pageSize = 20;
+
     const following = await this.prisma.follow.findMany({
       where: { followerId: userId },
       select: { followingId: true },
     });
-    const ids = [userId, ...following.map(f => f.followingId)];
+    const followingIds = new Set([userId, ...following.map(f => f.followingId)]);
+
+    // Fetch a pool of recent confessions to score in memory
     const rows = await this.prisma.confession.findMany({
-      where: { userId: { in: ids }, ...this.notExpired() },
+      where: { AND: [this.notExpired()] },
       orderBy: { createdAt: 'desc' },
-      take, skip,
+      take: 200,
       include: CONFESSION_INCLUDE(userId),
     });
-    return rows.map(c => mapConfession(c, userId));
+
+    const scored = rows
+      .map(c => {
+        const ageHours = (Date.now() - new Date(c.createdAt).getTime()) / 3_600_000;
+        const followBonus = followingIds.has(c.userId) ? 20 : 0;
+        const score =
+          c._count.reactions * 3 +
+          c._count.comments * 2 +
+          c._count.bookmarks * 4 +
+          followBonus -
+          ageHours * 0.5;
+        return { c, score };
+      })
+      .sort((a, b) => b.score - a.score);
+
+    return scored
+      .slice((page - 1) * pageSize, page * pageSize)
+      .map(({ c }) => mapConfession(c, userId));
   }
 
   async getExplore(userId: string, page = 1, tag?: string) {
