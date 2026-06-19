@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
+  ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Image,
 } from 'react-native';
 import { usersApi, confessionsApi } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
@@ -13,6 +13,7 @@ export default function UserProfileScreen({ route, navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [following, setFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const currentUser = useAuthStore(s => s.user);
   const flatListRef = useRef<FlatList>(null);
 
@@ -27,6 +28,7 @@ export default function UserProfileScreen({ route, navigation }: any) {
         ]);
         setFollowing(profile.isFollowing ?? false);
         setConfessions(confs);
+        if (profile.avatarUrl) setAvatarUrl(profile.avatarUrl);
       } catch {
         Alert.alert('Error', 'No se pudo cargar el perfil');
         navigation.goBack();
@@ -84,7 +86,12 @@ export default function UserProfileScreen({ route, navigation }: any) {
       </View>
 
       <View style={styles.aliasRow}>
-        <View style={styles.dot} />
+        <View style={styles.avatarCircle}>
+          {avatarUrl
+            ? <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+            : <Text style={styles.avatarPlaceholder}>{alias?.[0]?.toUpperCase() ?? '?'}</Text>
+          }
+        </View>
         <Text style={styles.alias}>{alias}</Text>
       </View>
 
@@ -132,11 +139,18 @@ const styles = StyleSheet.create({
   followText: { color: '#080808', fontSize: 14, fontWeight: '600' },
   followingText: { color: 'rgba(255,255,255,0.5)' },
   aliasRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
+    flexDirection: 'row', alignItems: 'center', gap: 14,
     paddingHorizontal: 20, paddingBottom: 20,
     borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)',
   },
-  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.4)' },
+  avatarCircle: {
+    width: 48, height: 48, borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+  },
+  avatarImage: { width: 48, height: 48, borderRadius: 24 },
+  avatarPlaceholder: { color: 'rgba(255,255,255,0.5)', fontSize: 18, fontWeight: '300' },
   alias: { fontSize: 22, fontWeight: '300', color: '#fff', fontStyle: 'italic', letterSpacing: -0.5 },
   empty: { textAlign: 'center', color: 'rgba(255,255,255,0.25)', marginTop: 40, fontSize: 14 },
   list: { padding: 16, gap: 12 },

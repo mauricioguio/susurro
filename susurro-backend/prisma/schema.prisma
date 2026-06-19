@@ -12,6 +12,7 @@ model User {
   password    String
   alias       String   @unique
   bio         String?
+  avatarUrl        String?
   pushToken        String?
   resetCode        String?
   resetCodeExpiry  DateTime?

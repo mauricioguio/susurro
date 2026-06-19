@@ -13,7 +13,7 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({
       where: { alias },
       select: {
-        id: true, alias: true, bio: true, createdAt: true,
+        id: true, alias: true, bio: true, avatarUrl: true, createdAt: true,
         _count: { select: { confessions: true, followers: true, following: true } },
       },
     });
@@ -76,6 +76,14 @@ export class UsersService {
       where: { id: userId },
       data: { pushToken: token },
       select: { alias: true },
+    });
+  }
+
+  async updateAvatar(userId: string, avatarBase64: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl: avatarBase64 },
+      select: { alias: true, avatarUrl: true },
     });
   }
 }

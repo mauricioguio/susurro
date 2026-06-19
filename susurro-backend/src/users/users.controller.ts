@@ -31,4 +31,9 @@ export class UsersController {
   updatePushToken(@Request() req: any, @Body('token') token: string) {
     return this.service.updatePushToken(req.user.sub, token);
   }
+
+  @Patch('me/avatar')
+  updateAvatar(@Request() req: any, @Body('avatarBase64') avatarBase64: string) {
+    return this.service.updateAvatar(req.user.sub, avatarBase64);
+  }
 }

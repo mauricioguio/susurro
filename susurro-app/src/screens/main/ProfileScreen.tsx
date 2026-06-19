@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import { confessionsApi } from '../../services/api';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Image } from 'react-native';
+import { confessionsApi, usersApi } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
+import * as ImagePicker from 'expo-image-picker';
 
 type Confession = {
   id: string;
-  text: string;
+  text: string | null;
+  audioUrl: string | null;
   createdAt: string;
   _count: { reactions: number; comments: number };
 };
@@ -21,14 +23,20 @@ function timeAgo(dateStr: string): string {
 export default function ProfileScreen() {
   const [confessions, setConfessions] = useState<Confession[]>([]);
   const [loading, setLoading] = useState(true);
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const user = useAuthStore(s => s.user);
   const logout = useAuthStore(s => s.logout);
 
   const load = useCallback(async () => {
     if (!user) return;
     try {
-      const data = await confessionsApi.getByUser(user.alias);
+      const [data, profile] = await Promise.all([
+        confessionsApi.getByUser(user.alias),
+        usersApi.getProfile(user.alias),
+      ]);
       setConfessions(data);
+      if (profile.avatarUrl) setAvatarUri(profile.avatarUrl);
     } catch {}
     finally { setLoading(false); }
   }, [user]);
@@ -42,6 +50,49 @@ export default function ProfileScreen() {
     ]);
   };
 
+  const handleDelete = (id: string) => {
+    Alert.alert('Eliminar confesión', '¿Seguro? Esta acción no se puede deshacer.', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar', style: 'destructive',
+        onPress: async () => {
+          try {
+            await confessionsApi.delete(id);
+            setConfessions(prev => prev.filter(c => c.id !== id));
+          } catch {
+            Alert.alert('Error', 'No se pudo eliminar la confesión.');
+          }
+        },
+      },
+    ]);
+  };
+
+  const handlePickAvatar = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permiso requerido', 'Necesitamos acceso a tu galería para cambiar la foto.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.4,
+      base64: true,
+    });
+    if (result.canceled || !result.assets[0].base64) return;
+    const base64 = `data:image/jpeg;base64,${result.assets[0].base64}`;
+    setUploadingAvatar(true);
+    try {
+      await usersApi.updateAvatar(base64);
+      setAvatarUri(base64);
+    } catch {
+      Alert.alert('Error', 'No se pudo actualizar la foto.');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -50,6 +101,22 @@ export default function ProfileScreen() {
           <Text style={styles.logoutText}>Salir</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Avatar */}
+      <TouchableOpacity style={styles.avatarSection} onPress={handlePickAvatar} disabled={uploadingAvatar}>
+        <View style={styles.avatarCircle}>
+          {avatarUri
+            ? <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+            : <Text style={styles.avatarPlaceholder}>{user?.alias?.[0]?.toUpperCase() ?? '?'}</Text>
+          }
+          {uploadingAvatar && (
+            <View style={styles.avatarOverlay}>
+              <ActivityIndicator color="#fff" size="small" />
+            </View>
+          )}
+        </View>
+        <Text style={styles.avatarHint}>Toca para cambiar foto</Text>
+      </TouchableOpacity>
 
       <View style={styles.stats}>
         <View style={styles.stat}>
@@ -75,10 +142,16 @@ export default function ProfileScreen() {
           }
           renderItem={({ item }) => (
             <View style={styles.card}>
-              <Text style={styles.cardText}>{item.text}</Text>
+              {item.audioUrl
+                ? <Text style={styles.audioLabel}>🎙️ Nota de voz</Text>
+                : <Text style={styles.cardText}>{item.text}</Text>
+              }
               <View style={styles.cardFooter}>
                 <Text style={styles.cardMeta}>🤍 {item._count.reactions} · 💬 {item._count.comments}</Text>
                 <Text style={styles.cardTime}>{timeAgo(item.createdAt)}</Text>
+                <TouchableOpacity onPress={() => handleDelete(item.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Text style={styles.deleteBtn}>🗑</Text>
+                </TouchableOpacity>
               </View>
             </View>
           )}
@@ -92,13 +165,27 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#080808' },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 56, paddingBottom: 20,
+    paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16,
   },
   aliasTitle: { fontSize: 22, fontWeight: '300', color: '#fff', fontStyle: 'italic', letterSpacing: -0.5 },
   logoutBtn: { padding: 4 },
   logoutText: { color: 'rgba(255,255,255,0.35)', fontSize: 13 },
+  avatarSection: { alignItems: 'center', paddingVertical: 16, gap: 8 },
+  avatarCircle: {
+    width: 72, height: 72, borderRadius: 36,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+  },
+  avatarImage: { width: 72, height: 72, borderRadius: 36 },
+  avatarPlaceholder: { color: 'rgba(255,255,255,0.5)', fontSize: 26, fontWeight: '300' },
+  avatarOverlay: {
+    position: 'absolute', width: 72, height: 72, borderRadius: 36,
+    backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center',
+  },
+  avatarHint: { color: 'rgba(255,255,255,0.2)', fontSize: 11 },
   stats: {
-    flexDirection: 'row', paddingHorizontal: 20, paddingVertical: 20,
+    flexDirection: 'row', paddingHorizontal: 20, paddingVertical: 16,
     borderTopWidth: 1, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
   },
   stat: { flex: 1, alignItems: 'center', gap: 4 },
@@ -116,7 +203,9 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)', gap: 12,
   },
   cardText: { color: 'rgba(255,255,255,0.8)', fontSize: 14, lineHeight: 22 },
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between' },
+  audioLabel: { color: 'rgba(255,255,255,0.4)', fontSize: 14 },
+  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   cardMeta: { color: 'rgba(255,255,255,0.25)', fontSize: 13 },
   cardTime: { color: 'rgba(255,255,255,0.2)', fontSize: 12 },
+  deleteBtn: { fontSize: 16, opacity: 0.5 },
 });

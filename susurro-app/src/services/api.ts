@@ -62,6 +62,7 @@ export const confessionsApi = {
   getComments:    (id: string) => api.get(`/confessions/${id}/comments`).then(r => r.data),
   addComment:     (id: string, text: string) => api.post(`/confessions/${id}/comments`, { text }).then(r => r.data),
   report:         (id: string, reason: string) => api.post(`/confessions/${id}/report`, { reason }).then(r => r.data),
+  delete:         (id: string) => api.delete(`/confessions/${id}`).then(r => r.data),
 };
 
 export const notificationsApi = {
@@ -85,4 +86,5 @@ export const usersApi = {
   follow:          (alias: string) => api.post(`/users/${alias}/follow`).then(r => r.data),
   search:          (q: string) => api.get(`/users/search?q=${encodeURIComponent(q)}`).then(r => r.data),
   updatePushToken: (token: string) => api.patch('/users/me/push-token', { token }).then(r => r.data),
+  updateAvatar:    (avatarBase64: string) => api.patch('/users/me/avatar', { avatarBase64 }).then(r => r.data),
 };
