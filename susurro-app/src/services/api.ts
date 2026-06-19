@@ -88,4 +88,5 @@ export const usersApi = {
   search:          (q: string) => api.get(`/users/search?q=${encodeURIComponent(q)}`).then(r => r.data),
   updatePushToken: (token: string) => api.patch('/users/me/push-token', { token }).then(r => r.data),
   updateAvatar:    (avatarBase64: string) => api.patch('/users/me/avatar', { avatarBase64 }).then(r => r.data),
+  deleteAccount:   () => api.delete('/users/me').then(r => r.data),
 };

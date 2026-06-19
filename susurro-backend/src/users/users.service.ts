@@ -86,4 +86,9 @@ export class UsersService {
       select: { alias: true, avatarUrl: true },
     });
   }
+
+  async deleteAccount(userId: string) {
+    await this.prisma.user.delete({ where: { id: userId } });
+    return { deleted: true };
+  }
 }

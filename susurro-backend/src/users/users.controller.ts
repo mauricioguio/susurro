@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Query, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Query, Body, UseGuards, Request } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtGuard } from '../auth/jwt.guard';
 
@@ -35,5 +35,10 @@ export class UsersController {
   @Patch('me/avatar')
   updateAvatar(@Request() req: any, @Body('avatarBase64') avatarBase64: string) {
     return this.service.updateAvatar(req.user.sub, avatarBase64);
+  }
+
+  @Delete('me')
+  deleteAccount(@Request() req: any) {
+    return this.service.deleteAccount(req.user.sub);
   }
 }
