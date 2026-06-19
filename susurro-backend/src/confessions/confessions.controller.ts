@@ -61,6 +61,11 @@ export class ConfessionsController {
     return this.service.getTags();
   }
 
+  @Get('search')
+  search(@Query('q') q: string, @Request() req: any) {
+    return this.service.search(req.user.sub, q ?? '');
+  }
+
   @Get('user/:alias')
   byUser(@Param('alias') alias: string, @Request() req: any, @Query('page') page?: string) {
     return this.service.getByUser(alias, req.user.sub, page ? +page : 1);

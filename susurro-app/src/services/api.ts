@@ -63,6 +63,7 @@ export const confessionsApi = {
   addComment:     (id: string, text: string) => api.post(`/confessions/${id}/comments`, { text }).then(r => r.data),
   report:         (id: string, reason: string) => api.post(`/confessions/${id}/report`, { reason }).then(r => r.data),
   delete:         (id: string) => api.delete(`/confessions/${id}`).then(r => r.data),
+  search:         (q: string) => api.get('/confessions/search', { params: { q } }).then(r => r.data as any[]),
 };
 
 export const notificationsApi = {

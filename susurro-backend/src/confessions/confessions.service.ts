@@ -133,6 +133,23 @@ export class ConfessionsService {
     return rows.map(c => mapConfession(c, userId));
   }
 
+  async search(userId: string, q: string) {
+    if (!q.trim()) return [];
+    const rows = await this.prisma.confession.findMany({
+      where: {
+        ...this.notExpired(),
+        OR: [
+          { text: { contains: q, mode: 'insensitive' } },
+          { tags: { has: q.startsWith('#') ? q : `#${q}` } },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 30,
+      include: CONFESSION_INCLUDE(userId),
+    });
+    return rows.map(c => mapConfession(c, userId));
+  }
+
   async getById(id: string, userId: string) {
     const c = await this.prisma.confession.findUnique({
       where: { id },
