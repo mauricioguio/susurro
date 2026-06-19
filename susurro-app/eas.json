@@ -4,14 +4,15 @@
   },
   "build": {
     "preview": {
-      "android": {
-        "buildType": "apk"
-      }
+      "android": { "buildType": "apk" },
+      "channel": "preview"
     },
     "production": {
-      "android": {
-        "buildType": "app-bundle"
-      }
+      "android": { "buildType": "app-bundle" },
+      "channel": "production"
     }
+  },
+  "update": {
+    "url": "https://u.expo.dev/ed4b5937-23df-4ed9-84f0-157f27ae1063"
   }
 }

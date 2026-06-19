@@ -29,6 +29,15 @@
         "projectId": "ed4b5937-23df-4ed9-84f0-157f27ae1063"
       }
     },
-    "owner": "susurroapp"
+    "owner": "susurroapp",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/ed4b5937-23df-4ed9-84f0-157f27ae1063",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    }
   }
 }
