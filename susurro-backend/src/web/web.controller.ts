@@ -1,5 +1,4 @@
 import { Controller, Get, Param, Res } from '@nestjs/common';
-import { Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Controller('c')
@@ -7,7 +6,7 @@ export class WebController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get(':id')
-  async confessionPage(@Param('id') id: string, @Res() res: Response) {
+  async confessionPage(@Param('id') id: string, @Res() res: any) {
     const confession = await this.prisma.confession.findUnique({
       where: { id },
       select: { text: true, audioUrl: true, tags: true, createdAt: true, hidden: true },
