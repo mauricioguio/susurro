@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Image, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { confessionsApi, usersApi } from '../../services/api';
+import { MiniAudioPlayer } from '../../components/ConfessionCard';
 import { useAuthStore } from '../../store/authStore';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -256,7 +257,7 @@ export default function ProfileScreen({ navigation }: any) {
           renderItem={({ item }) => (
             <View style={styles.card}>
               {item.audioUrl
-                ? <Text style={styles.audioLabel}>🎙️ Nota de voz</Text>
+                ? <MiniAudioPlayer audioUrl={item.audioUrl} />
                 : <Text style={styles.cardText}>{item.text}</Text>
               }
               <View style={styles.cardFooter}>

@@ -4,61 +4,13 @@ import {
   View, Text, FlatList, StyleSheet, ActivityIndicator,
   Dimensions, TouchableOpacity, Alert, Share, Animated,
 } from 'react-native';
-import { Audio } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { confessionsApi, notificationsApi } from '../../services/api';
-import { Confession, REACTIONS, timeAgo, expiresIn, PollResult } from '../../components/ConfessionCard';
+import { Confession, REACTIONS, timeAgo, expiresIn, PollResult, MiniAudioPlayer } from '../../components/ConfessionCard';
 import CommentsModal from './CommentsModal';
 
 const { width: W } = Dimensions.get('window');
 type FeedMode = 'parati' | 'siguiendo';
-
-// ── AudioPlayer ───────────────────────────────────────────────────────────────
-function AudioPlayer({ audioUrl }: { audioUrl: string }) {
-  const soundRef = useRef<Audio.Sound | null>(null);
-  const [playing, setPlaying] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const toggle = async () => {
-    if (loading) return;
-    if (playing && soundRef.current) {
-      await soundRef.current.pauseAsync();
-      setPlaying(false);
-      return;
-    }
-    setLoading(true);
-    try {
-      if (!soundRef.current) {
-        const { sound } = await Audio.Sound.createAsync({ uri: audioUrl });
-        soundRef.current = sound;
-        sound.setOnPlaybackStatusUpdate(s => {
-          if (s.isLoaded && s.didJustFinish) {
-            setPlaying(false);
-            soundRef.current?.unloadAsync();
-            soundRef.current = null;
-          }
-        });
-      }
-      await soundRef.current.playAsync();
-      setPlaying(true);
-    } catch {
-      Alert.alert('Error', 'No se pudo reproducir el audio');
-    } finally { setLoading(false); }
-  };
-
-  return (
-    <TouchableOpacity style={styles.audioPlayer} onPress={toggle} activeOpacity={0.7}>
-      {loading
-        ? <ActivityIndicator color="rgba(255,255,255,0.5)" />
-        : <Ionicons name={playing ? 'pause' : 'play'} size={22} color="#fff" />
-      }
-      <View style={styles.audioBar}>
-        <View style={[styles.audioFill, playing && { width: '60%' }]} />
-      </View>
-      <Ionicons name="mic-outline" size={14} color="rgba(255,255,255,0.3)" />
-    </TouchableOpacity>
-  );
-}
 
 // ── PollSection ───────────────────────────────────────────────────────────────
 function PollSection({ pollQuestion, pollResult: initialPollResult, confessionId }: {
@@ -205,7 +157,7 @@ function TikTokCard({ item, height, navigation, onReact, onOpenComments }: {
       {/* ── Content centered ── */}
       <View style={styles.contentArea}>
         {item.audioUrl
-          ? <AudioPlayer audioUrl={item.audioUrl} />
+          ? <MiniAudioPlayer audioUrl={item.audioUrl} />
           : <Text style={styles.confessionText}>{item.text}</Text>
         }
         {item.pollQuestion && (
@@ -534,16 +486,6 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
 
-  // Audio player
-  audioPlayer: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 16, padding: 18,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
-  },
-  audioIcon: { color: '#fff', fontSize: 22 },
-  audioBar: { flex: 1, height: 4, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 2 },
-  audioFill: { width: '25%', height: '100%', backgroundColor: 'rgba(255,255,255,0.5)', borderRadius: 2 },
-  audioLabel: { color: 'rgba(255,255,255,0.3)', fontSize: 12 },
 
   // Poll
   poll: {

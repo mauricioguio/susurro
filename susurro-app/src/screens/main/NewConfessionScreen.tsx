@@ -129,7 +129,7 @@ export default function NewConfessionScreen({ navigation, route }: any) {
       if (mode === 'voice' && audioUri) {
         try {
           const { url } = await confessionsApi.uploadAudio(audioUri);
-          audioUrl = `${API_BASE}${url}`;
+          audioUrl = url;
         } catch (e: any) {
           Alert.alert('Error subiendo audio', e?.response?.data?.message ?? e?.message ?? 'upload failed');
           setLoading(false);

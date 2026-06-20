@@ -56,10 +56,18 @@ export const REACTIONS = [
 
 export const TAGS = ['#amor', '#trabajo', '#familia', '#amistad', '#vida', '#secreto', '#miedo', '#felicidad'];
 
+function fmtTime(ms: number): string {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  return `${m}:${String(s % 60).padStart(2, '0')}`;
+}
+
 export function MiniAudioPlayer({ audioUrl }: { audioUrl: string }) {
   const soundRef = useRef<Audio.Sound | null>(null);
   const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [position, setPosition] = useState(0);
+  const [duration, setDuration] = useState(0);
 
   const toggle = async () => {
     if (loading) return;
@@ -70,34 +78,53 @@ export function MiniAudioPlayer({ audioUrl }: { audioUrl: string }) {
     }
     setLoading(true);
     try {
+      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true, allowsRecordingIOS: false });
       if (!soundRef.current) {
-        const { sound } = await Audio.Sound.createAsync({ uri: audioUrl });
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: audioUrl },
+          { shouldPlay: false },
+          (s) => {
+            if (!s.isLoaded) return;
+            setPosition(s.positionMillis ?? 0);
+            setDuration(s.durationMillis ?? 0);
+            if (s.didJustFinish) {
+              setPlaying(false);
+              setPosition(0);
+              soundRef.current?.unloadAsync();
+              soundRef.current = null;
+            }
+          },
+          true,
+        );
         soundRef.current = sound;
-        sound.setOnPlaybackStatusUpdate(s => {
-          if (s.isLoaded && s.didJustFinish) {
-            setPlaying(false);
-            soundRef.current?.unloadAsync();
-            soundRef.current = null;
-          }
-        });
+        const status = await sound.getStatusAsync();
+        if (status.isLoaded) setDuration(status.durationMillis ?? 0);
       }
       await soundRef.current.playAsync();
       setPlaying(true);
-    } catch {
-      Alert.alert('Error', 'No se pudo reproducir el audio');
+    } catch (e: any) {
+      Alert.alert('Error de audio', e?.message ?? String(e));
     } finally {
       setLoading(false);
     }
   };
 
+  const progress = duration > 0 ? position / duration : 0;
+
   return (
     <TouchableOpacity style={audioStyles.player} onPress={toggle} activeOpacity={0.7}>
       {loading
         ? <ActivityIndicator color="rgba(255,255,255,0.5)" size="small" />
-        : <Ionicons name={playing ? 'pause' : 'play'} size={16} color="#fff" />
+        : <Ionicons name={playing ? 'pause' : 'play'} size={18} color="#fff" />
       }
-      <View style={audioStyles.bar}>
-        <View style={[audioStyles.fill, playing && { width: '70%' }]} />
+      <View style={audioStyles.barWrap}>
+        <View style={audioStyles.bar}>
+          <View style={[audioStyles.fill, { width: `${Math.round(progress * 100)}%` }]} />
+        </View>
+        <View style={audioStyles.times}>
+          <Text style={audioStyles.timeText}>{fmtTime(position)}</Text>
+          <Text style={audioStyles.timeText}>{duration > 0 ? fmtTime(duration) : '--:--'}</Text>
+        </View>
       </View>
       <Ionicons name="mic-outline" size={14} color="rgba(255,255,255,0.3)" />
     </TouchableOpacity>
@@ -110,9 +137,11 @@ const audioStyles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12,
     padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
   },
-  icon: { color: '#fff', fontSize: 16 },
-  bar: { flex: 1, height: 3, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 2 },
-  fill: { width: '30%', height: '100%', backgroundColor: 'rgba(255,255,255,0.4)', borderRadius: 2 },
+  barWrap: { flex: 1, gap: 4 },
+  bar: { height: 3, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 2, overflow: 'hidden' },
+  fill: { height: '100%', backgroundColor: '#fff', borderRadius: 2 },
+  times: { flexDirection: 'row', justifyContent: 'space-between' },
+  timeText: { fontSize: 10, color: 'rgba(255,255,255,0.35)' },
   label: { fontSize: 14 },
 });
 
