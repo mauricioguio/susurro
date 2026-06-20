@@ -7,6 +7,7 @@ import { ConfessionsModule } from './confessions/confessions.module';
 import { UsersModule } from './users/users.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { WebModule } from './web/web.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { WebModule } from './web/web.module';
     ConfessionsModule,
     UsersModule,
     WebModule,
+    AdminModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

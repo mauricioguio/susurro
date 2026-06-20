@@ -7,7 +7,18 @@ import * as path from 'path';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.enableCors();
-  app.setGlobalPrefix('api', { exclude: [{ path: 'c/:id', method: RequestMethod.GET }] });
+  app.setGlobalPrefix('api', {
+    exclude: [
+      { path: 'c/:id', method: RequestMethod.GET },
+      { path: 'admin', method: RequestMethod.GET },
+      { path: 'admin/confessions/:id/hide', method: RequestMethod.PATCH },
+      { path: 'admin/confessions/:id/unhide', method: RequestMethod.PATCH },
+      { path: 'admin/reports/:id/resolve', method: RequestMethod.PATCH },
+      { path: 'admin/users/:id/ban', method: RequestMethod.POST },
+      { path: 'admin/users/:id/unban', method: RequestMethod.POST },
+      { path: 'admin/users/search/:alias', method: RequestMethod.GET },
+    ],
+  });
   app.use(require('express').json({ limit: '10mb' }));
   app.use(require('express').urlencoded({ extended: true, limit: '10mb' }));
   app.useStaticAssets(path.join(process.cwd(), 'uploads'), { prefix: '/uploads' });

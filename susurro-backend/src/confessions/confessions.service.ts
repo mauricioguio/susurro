@@ -339,6 +339,13 @@ export class ConfessionsService {
     if (containsBlockedWord(text))
       throw new BadRequestException('Tu comentario contiene palabras no permitidas.');
 
+    const oneHourAgo = new Date(Date.now() - 3_600_000);
+    const recentComments = await this.prisma.comment.count({
+      where: { userId, createdAt: { gte: oneHourAgo } },
+    });
+    if (recentComments >= 30)
+      throw new BadRequestException('Has alcanzado el límite de 30 comentarios por hora.');
+
     const comment = await this.prisma.comment.create({
       data: { confessionId, userId, text },
       include: { user: { select: { alias: true } } },

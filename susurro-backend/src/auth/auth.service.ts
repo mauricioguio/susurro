@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
@@ -46,6 +46,12 @@ export class AuthService {
 
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) throw new UnauthorizedException('Credenciales incorrectas');
+
+    if (user.banned) throw new ForbiddenException(
+      user.bannedReason
+        ? `Cuenta suspendida: ${user.bannedReason}`
+        : 'Tu cuenta ha sido suspendida por violar los términos de servicio.'
+    );
 
     const token = this.jwt.sign({ sub: user.id, alias: user.alias });
     return { token, alias: user.alias, id: user.id };

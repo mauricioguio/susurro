@@ -17,6 +17,8 @@ model User {
   resetCode        String?
   resetCodeExpiry  DateTime?
   ageVerifiedAt    DateTime?
+  banned           Boolean  @default(false)
+  bannedReason     String?
   createdAt        DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
