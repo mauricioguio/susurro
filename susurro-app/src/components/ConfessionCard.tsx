@@ -141,15 +141,15 @@ export function ConfessionCard({ item, index = 0, navigation, onReact, onComment
   }, {});
 
   const shareConfession = async () => {
-    const lines: string[] = ['💬 Alguien en Susurro confiesa:'];
+    const url = `https://susurro-production.up.railway.app/c/${item.id}`;
+    const lines: string[] = [];
     if (item.audioUrl) {
-      lines.push('\n🎙️ [Confesión de voz]');
+      lines.push('🎙️ Escucha esta confesión anónima en Susurro');
     } else if (item.text) {
-      lines.push(`\n"${item.text}"`);
+      const preview = item.text.length > 100 ? item.text.slice(0, 97) + '…' : item.text;
+      lines.push(`"${preview}"`);
     }
-    if (item.tags?.length > 0) lines.push(`\n${item.tags.join('  ')}`);
-    lines.push(`\n🔗 susurro://confession/${item.id}`);
-    lines.push('\n— Susurro, confesiones anónimas 🤫');
+    lines.push(url);
     try {
       await Share.share({ message: lines.join('\n') });
     } catch {}

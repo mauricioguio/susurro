@@ -1,6 +1,19 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+
+const BLOCKED_WORDS = [
+  'puta','puto','mierda','verga','chinga','chingada','cabron','cabrón',
+  'pendejo','pendeja','culero','culera','mamón','mamona','idiota','imbécil',
+  'imbecil','estupido','estúpido','estupida','estúpida','hdp','hjdp',
+  'marica','maricón','maricon','perra','perro','bastardo','bastarda',
+  'coño','carajo','joder','gilipollas','follar','zorra','polla',
+];
+
+function containsBlockedWord(text: string): boolean {
+  const lower = text.toLowerCase();
+  return BLOCKED_WORDS.some(w => lower.includes(w));
+}
 
 const CONFESSION_INCLUDE = (userId: string) => ({
   user: { select: { alias: true } },
@@ -41,6 +54,11 @@ export class ConfessionsService {
     pollQuestion?: string;
     parentId?: string;
   }) {
+    if (data.text && containsBlockedWord(data.text))
+      throw new BadRequestException('Tu confesión contiene palabras no permitidas.');
+    if (data.pollQuestion && containsBlockedWord(data.pollQuestion))
+      throw new BadRequestException('La pregunta contiene palabras no permitidas.');
+
     const confession = await this.prisma.confession.create({
       data: {
         userId,
@@ -85,7 +103,7 @@ export class ConfessionsService {
 
     // Fetch a pool of recent confessions to score in memory
     const rows = await this.prisma.confession.findMany({
-      where: { AND: [this.notExpired()] },
+      where: { AND: [this.notExpired()], hidden: false },
       orderBy: { createdAt: 'desc' },
       take: 200,
       include: CONFESSION_INCLUDE(userId),
@@ -115,6 +133,7 @@ export class ConfessionsService {
     const skip = (page - 1) * take;
     const rows = await this.prisma.confession.findMany({
       where: {
+        hidden: false,
         ...this.notExpired(),
         ...(tag ? { tags: { has: tag } } : {}),
       },
@@ -130,7 +149,7 @@ export class ConfessionsService {
     const skip = (page - 1) * take;
     const since = new Date(Date.now() - 48 * 60 * 60 * 1000);
     const rows = await this.prisma.confession.findMany({
-      where: { createdAt: { gte: since }, ...this.notExpired() },
+      where: { createdAt: { gte: since }, hidden: false, ...this.notExpired() },
       orderBy: { reactions: { _count: 'desc' } },
       take, skip,
       include: CONFESSION_INCLUDE(userId),
@@ -144,7 +163,7 @@ export class ConfessionsService {
     const user = await this.prisma.user.findUnique({ where: { alias } });
     if (!user) throw new NotFoundException('Usuario no encontrado');
     const rows = await this.prisma.confession.findMany({
-      where: { userId: user.id, ...this.notExpired() },
+      where: { userId: user.id, hidden: false, ...this.notExpired() },
       orderBy: { createdAt: 'desc' },
       take, skip,
       include: CONFESSION_INCLUDE(userId),
@@ -157,6 +176,7 @@ export class ConfessionsService {
     const tag = q.startsWith('#') ? q : `#${q}`;
     const rows = await this.prisma.confession.findMany({
       where: {
+        hidden: false,
         AND: [
           this.notExpired(),
           {
@@ -308,6 +328,9 @@ export class ConfessionsService {
   }
 
   async addComment(confessionId: string, userId: string, text: string) {
+    if (containsBlockedWord(text))
+      throw new BadRequestException('Tu comentario contiene palabras no permitidas.');
+
     const comment = await this.prisma.comment.create({
       data: { confessionId, userId, text },
       include: { user: { select: { alias: true } } },
@@ -333,10 +356,15 @@ export class ConfessionsService {
   }
 
   async report(confessionId: string, userId: string, reason: string) {
-    return this.prisma.report.upsert({
+    await this.prisma.report.upsert({
       where: { userId_confessionId: { userId, confessionId } },
       update: { reason },
       create: { userId, confessionId, reason },
     });
+    const count = await this.prisma.report.count({ where: { confessionId } });
+    if (count >= 5) {
+      await this.prisma.confession.update({ where: { id: confessionId }, data: { hidden: true } });
+    }
+    return { reported: true };
   }
 }

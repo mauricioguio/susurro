@@ -21,7 +21,7 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(diff / 86400)}d`;
 }
 
-export default function ProfileScreen() {
+export default function ProfileScreen({ navigation }: any) {
   const [confessions, setConfessions] = useState<Confession[]>([]);
   const [loading, setLoading] = useState(true);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
@@ -188,6 +188,15 @@ export default function ProfileScreen() {
           }
           ListFooterComponent={
             <View style={styles.dangerZone}>
+              <View style={styles.legalLinks}>
+                <TouchableOpacity onPress={() => navigation.navigate('Legal', { type: 'terms' })}>
+                  <Text style={styles.legalText}>Términos de servicio</Text>
+                </TouchableOpacity>
+                <Text style={styles.legalSep}>·</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('Legal', { type: 'privacy' })}>
+                  <Text style={styles.legalText}>Privacidad</Text>
+                </TouchableOpacity>
+              </View>
               {!showDeleteZone ? (
                 <TouchableOpacity
                   style={styles.dangerTrigger}
@@ -319,6 +328,10 @@ const styles = StyleSheet.create({
   cardMeta: { color: 'rgba(255,255,255,0.25)', fontSize: 13 },
   cardTime: { color: 'rgba(255,255,255,0.2)', fontSize: 12 },
   deleteBtn: { fontSize: 16, opacity: 0.5 },
+
+  legalLinks: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, paddingVertical: 8 },
+  legalText: { color: 'rgba(255,255,255,0.2)', fontSize: 12 },
+  legalSep: { color: 'rgba(255,255,255,0.1)', fontSize: 12 },
 
   dangerZone: { marginTop: 24, marginHorizontal: 0, paddingBottom: 60 },
   dangerTrigger: {

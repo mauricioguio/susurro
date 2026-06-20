@@ -64,6 +64,7 @@ model Confession {
   tags         String[]  @default([])
   pollQuestion String?
   expiresAt    DateTime?
+  hidden       Boolean   @default(false)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 

@@ -22,6 +22,7 @@ import CommentsScreen from '../screens/main/CommentsScreen';
 import RepliesScreen from '../screens/main/RepliesScreen';
 import ConfessionDetailScreen from '../screens/main/ConfessionDetailScreen';
 import NotificationsScreen from '../screens/main/NotificationsScreen';
+import LegalScreen from '../screens/main/LegalScreen';
 import { useAuthStore } from '../store/authStore';
 import { useNotifications } from '../hooks/useNotifications';
 
@@ -148,6 +149,7 @@ export default function AppNavigator() {
         <Stack.Screen name="Replies" component={RepliesScreen} />
         <Stack.Screen name="ConfessionDetail" component={ConfessionDetailScreen} />
         <Stack.Screen name="Notifications" component={NotificationsScreen} />
+        <Stack.Screen name="Legal" component={LegalScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
