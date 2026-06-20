@@ -16,6 +16,7 @@ model User {
   pushToken        String?
   resetCode        String?
   resetCodeExpiry  DateTime?
+  ageVerifiedAt    DateTime?
   createdAt        DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

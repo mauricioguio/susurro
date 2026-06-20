@@ -13,7 +13,9 @@ export class AuthService {
     private readonly jwt: JwtService,
   ) {}
 
-  async register(email: string, password: string, alias: string) {
+  async register(email: string, password: string, alias: string, ageVerified: boolean) {
+    if (!ageVerified) throw new BadRequestException('Debes confirmar que eres mayor de 18 años.');
+
     const exists = await this.prisma.user.findFirst({
       where: { OR: [{ email }, { alias }] },
     });
@@ -22,7 +24,7 @@ export class AuthService {
 
     const hash = await bcrypt.hash(password, 10);
     const user = await this.prisma.user.create({
-      data: { email, password: hash, alias },
+      data: { email, password: hash, alias, ageVerifiedAt: new Date() },
     });
 
     const token = this.jwt.sign({ sub: user.id, alias: user.alias });

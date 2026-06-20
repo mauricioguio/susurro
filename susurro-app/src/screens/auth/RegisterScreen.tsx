@@ -72,13 +72,28 @@ export default function RegisterScreen({ navigation }: Props) {
   const [showPass, setShowPass]         = useState(false);
   const [showConfirm, setShowConfirm]   = useState(false);
   const [loading, setLoading]           = useState(false);
+  const [showAgeGate, setShowAgeGate]   = useState(true);
   const [termsAccepted, setTermsAccepted] = useState(false);
-  const [showTerms, setShowTerms]       = useState(true);
+  const [showTerms, setShowTerms]       = useState(false);
   const [scrolledToBottom, setScrolledToBottom] = useState(false);
   const login = useAuthStore(s => s.login);
 
   const passwordsMatch = password === confirmPassword;
   const canSubmit = alias.trim() && email.trim() && password.length >= 8 && passwordsMatch;
+
+  const handleAgeConfirm = (isAdult: boolean) => {
+    if (isAdult) {
+      setShowAgeGate(false);
+      setShowTerms(true);
+    } else {
+      setShowAgeGate(false);
+      Alert.alert(
+        'Acceso restringido',
+        'Susurro es exclusivamente para personas mayores de 18 años. No puedes crear una cuenta.',
+        [{ text: 'Entendido', onPress: () => navigation.goBack() }],
+      );
+    }
+  };
 
   const handleAcceptTerms = () => {
     setTermsAccepted(true);
@@ -104,7 +119,7 @@ export default function RegisterScreen({ navigation }: Props) {
     }
     setLoading(true);
     try {
-      const data = await authApi.register({ alias: alias.trim(), email: email.trim(), password });
+      const data = await authApi.register({ alias: alias.trim(), email: email.trim(), password, ageVerified: true });
       await login(data.token, { id: data.id, alias: data.alias });
     } catch (e: any) {
       Alert.alert('Error', e?.response?.data?.message ?? 'No se pudo crear la cuenta');
@@ -209,7 +224,27 @@ export default function RegisterScreen({ navigation }: Props) {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Terms modal — shown immediately on enter */}
+      {/* Age gate modal — shown first */}
+      <Modal visible={showAgeGate} animationType="fade" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.ageSheet}>
+            <Text style={styles.ageEmoji}>🔞</Text>
+            <Text style={styles.ageTitle}>Verificación de edad</Text>
+            <Text style={styles.ageDesc}>
+              Susurro es una plataforma para mayores de 18 años.{'\n'}
+              Al continuar confirmas que cumples con este requisito.
+            </Text>
+            <TouchableOpacity style={styles.ageYesBtn} onPress={() => handleAgeConfirm(true)}>
+              <Text style={styles.ageYesText}>Sí, soy mayor de 18 años</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.ageNoBtn} onPress={() => handleAgeConfirm(false)}>
+              <Text style={styles.ageNoText}>No, soy menor de 18 años</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Terms modal — shown after age confirmation */}
       <Modal visible={showTerms} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
@@ -288,6 +323,21 @@ const styles = StyleSheet.create({
   btnText: { color: '#080808', fontSize: 15, fontWeight: '600' },
   loginLink: { textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 13 },
   loginLinkBold: { color: 'rgba(255,255,255,0.7)', fontWeight: '600' },
+
+  ageSheet: {
+    backgroundColor: '#111', borderRadius: 24, margin: 24,
+    padding: 28, alignItems: 'center', gap: 12,
+  },
+  ageEmoji: { fontSize: 48, marginBottom: 4 },
+  ageTitle: { color: '#fff', fontSize: 20, fontWeight: '600', textAlign: 'center' },
+  ageDesc: { color: 'rgba(255,255,255,0.4)', fontSize: 14, lineHeight: 22, textAlign: 'center', marginBottom: 8 },
+  ageYesBtn: {
+    width: '100%', backgroundColor: '#fff', borderRadius: 14,
+    paddingVertical: 16, alignItems: 'center',
+  },
+  ageYesText: { color: '#080808', fontSize: 15, fontWeight: '600' },
+  ageNoBtn: { width: '100%', paddingVertical: 12, alignItems: 'center' },
+  ageNoText: { color: 'rgba(255,80,80,0.6)', fontSize: 14 },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
   modalSheet: {

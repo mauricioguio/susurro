@@ -22,7 +22,7 @@ api.interceptors.request.use(async (config) => {
 });
 
 export const authApi = {
-  register: (data: { email: string; password: string; alias: string }) =>
+  register: (data: { email: string; password: string; alias: string; ageVerified: boolean }) =>
     api.post('/auth/register', data).then(r => r.data),
   login: (data: { email: string; password: string }) =>
     api.post('/auth/login', data).then(r => r.data),
