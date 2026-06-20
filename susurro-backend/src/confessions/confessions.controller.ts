@@ -1,27 +1,30 @@
 import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards, Request, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
+import { memoryStorage } from 'multer';
 import { extname } from 'path';
 import { ConfessionsService } from './confessions.service';
+import { StorageService } from '../storage/storage.service';
 import { JwtGuard } from '../auth/jwt.guard';
 import { Public } from '../auth/public.decorator';
 
 @Controller('confessions')
 @UseGuards(JwtGuard)
 export class ConfessionsController {
-  constructor(private readonly service: ConfessionsService) {}
+  constructor(
+    private readonly service: ConfessionsService,
+    private readonly storage: StorageService,
+  ) {}
 
   @Public()
   @Post('upload-audio')
   @UseInterceptors(FileInterceptor('audio', {
-    storage: diskStorage({
-      destination: './uploads/audio',
-      filename: (_, file, cb) => cb(null, `${Date.now()}${extname(file.originalname)}`),
-    }),
+    storage: memoryStorage(),
     limits: { fileSize: 10 * 1024 * 1024 },
   }))
-  uploadAudio(@UploadedFile() file: Express.Multer.File) {
-    return { url: `/uploads/audio/${file.filename}` };
+  async uploadAudio(@UploadedFile() file: Express.Multer.File) {
+    const filename = `audio/${Date.now()}${extname(file.originalname)}`;
+    const url = await this.storage.upload(file.buffer, filename, file.mimetype);
+    return { url };
   }
 
   @Post()
