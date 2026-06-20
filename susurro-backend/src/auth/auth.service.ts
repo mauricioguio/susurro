@@ -16,6 +16,13 @@ export class AuthService {
   async register(email: string, password: string, alias: string, ageVerified: boolean) {
     if (!ageVerified) throw new BadRequestException('Debes confirmar que eres mayor de 18 años.');
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) throw new BadRequestException('El correo no tiene un formato válido.');
+    if (password.length < 8) throw new BadRequestException('La contraseña debe tener al menos 8 caracteres.');
+    if (alias.trim().length < 3) throw new BadRequestException('El alias debe tener al menos 3 caracteres.');
+    if (!/^[a-zA-Z0-9_áéíóúÁÉÍÓÚñÑ\-\.]+$/.test(alias))
+      throw new BadRequestException('El alias solo puede contener letras, números, guiones y puntos.');
+
     const exists = await this.prisma.user.findFirst({
       where: { OR: [{ email }, { alias }] },
     });

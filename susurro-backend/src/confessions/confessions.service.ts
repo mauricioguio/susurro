@@ -59,6 +59,14 @@ export class ConfessionsService {
     if (data.pollQuestion && containsBlockedWord(data.pollQuestion))
       throw new BadRequestException('La pregunta contiene palabras no permitidas.');
 
+    // Máximo 10 confesiones por hora por usuario
+    const oneHourAgo = new Date(Date.now() - 3_600_000);
+    const recentCount = await this.prisma.confession.count({
+      where: { userId, createdAt: { gte: oneHourAgo } },
+    });
+    if (recentCount >= 10)
+      throw new BadRequestException('Has alcanzado el límite de 10 confesiones por hora.');
+
     const confession = await this.prisma.confession.create({
       data: {
         userId,

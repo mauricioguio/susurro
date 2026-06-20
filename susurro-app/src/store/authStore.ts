@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { setAuthToken } from '../services/api';
+import { setAuthToken, setLogoutHandler } from '../services/api';
 
 interface User { id: string; alias: string }
 
@@ -35,6 +35,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       const [[, token], [, userStr]] = await AsyncStorage.multiGet(['token', 'user']);
       if (token && userStr) {
         setAuthToken(token);
+        // Register auto-logout handler for expired tokens
+        setLogoutHandler(() => {
+          AsyncStorage.multiRemove(['token', 'user']);
+          set({ token: null, user: null });
+        });
         set({ token, user: JSON.parse(userStr), isLoading: false });
       } else {
         set({ isLoading: false });

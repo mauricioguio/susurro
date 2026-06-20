@@ -21,6 +21,22 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+// Auto-logout when token is expired or invalid
+let _logoutFn: (() => void) | null = null;
+export const setLogoutHandler = (fn: () => void) => { _logoutFn = fn; };
+
+api.interceptors.response.use(
+  r => r,
+  err => {
+    if (err?.response?.status === 401 && _logoutFn) {
+      setAuthToken(null);
+      AsyncStorage.removeItem('token');
+      _logoutFn();
+    }
+    return Promise.reject(err);
+  },
+);
+
 export const authApi = {
   register: (data: { email: string; password: string; alias: string; ageVerified: boolean }) =>
     api.post('/auth/register', data).then(r => r.data),
