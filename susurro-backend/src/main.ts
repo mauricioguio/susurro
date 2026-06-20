@@ -11,6 +11,8 @@ async function bootstrap() {
     exclude: [
       { path: 'c/:id', method: RequestMethod.GET },
       { path: 'admin', method: RequestMethod.GET },
+      { path: 'admin/verify', method: RequestMethod.POST },
+      { path: 'admin/data', method: RequestMethod.GET },
       { path: 'admin/confessions/:id/hide', method: RequestMethod.PATCH },
       { path: 'admin/confessions/:id/unhide', method: RequestMethod.PATCH },
       { path: 'admin/reports/:id/resolve', method: RequestMethod.PATCH },
