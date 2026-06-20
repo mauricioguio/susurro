@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -65,24 +65,43 @@ Susurro no está dirigido a menores de 13 años.
 legal@susurro.app`;
 
 export default function RegisterScreen({ navigation }: Props) {
-  const [alias, setAlias]       = useState('');
-  const [email, setEmail]       = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading]   = useState(false);
-  const [showTerms, setShowTerms] = useState(false);
+  const [alias, setAlias]               = useState('');
+  const [email, setEmail]               = useState('');
+  const [password, setPassword]         = useState('');
+  const [confirmPassword, setConfirm]   = useState('');
+  const [showPass, setShowPass]         = useState(false);
+  const [showConfirm, setShowConfirm]   = useState(false);
+  const [loading, setLoading]           = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showTerms, setShowTerms]       = useState(true);
   const [scrolledToBottom, setScrolledToBottom] = useState(false);
   const login = useAuthStore(s => s.login);
 
-  const formValid = alias.trim() && email.trim() && password.length >= 8;
+  const passwordsMatch = password === confirmPassword;
+  const canSubmit = alias.trim() && email.trim() && password.length >= 8 && passwordsMatch;
 
-  const handleSubmit = () => {
-    if (!formValid) return;
-    setScrolledToBottom(false);
-    setShowTerms(true);
+  const handleAcceptTerms = () => {
+    setTermsAccepted(true);
+    setShowTerms(false);
   };
 
-  const handleAccept = async () => {
-    setShowTerms(false);
+  const handleDeclineTerms = () => {
+    navigation.goBack();
+  };
+
+  const handleScroll = (e: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
+    if (layoutMeasurement.height + contentOffset.y >= contentSize.height - 32) {
+      setScrolledToBottom(true);
+    }
+  };
+
+  const handleRegister = async () => {
+    if (!canSubmit) return;
+    if (!passwordsMatch) {
+      Alert.alert('Error', 'Las contraseñas no coinciden.');
+      return;
+    }
     setLoading(true);
     try {
       const data = await authApi.register({ alias: alias.trim(), email: email.trim(), password });
@@ -92,12 +111,6 @@ export default function RegisterScreen({ navigation }: Props) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleScroll = (e: any) => {
-    const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
-    const isAtBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 32;
-    if (isAtBottom) setScrolledToBottom(true);
   };
 
   return (
@@ -143,21 +156,46 @@ export default function RegisterScreen({ navigation }: Props) {
 
             <View style={styles.field}>
               <Text style={styles.label}>Contraseña</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Mínimo 8 caracteres"
-                placeholderTextColor="rgba(255,255,255,0.2)"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-              />
+              <View style={styles.passwordRow}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Mínimo 8 caracteres"
+                  placeholderTextColor="rgba(255,255,255,0.2)"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPass}
+                />
+                <TouchableOpacity onPress={() => setShowPass(v => !v)} style={styles.eyeBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={18} color="rgba(255,255,255,0.35)" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.field}>
+              <Text style={styles.label}>Confirmar contraseña</Text>
+              <View style={styles.passwordRow}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Repite tu contraseña"
+                  placeholderTextColor="rgba(255,255,255,0.2)"
+                  value={confirmPassword}
+                  onChangeText={setConfirm}
+                  secureTextEntry={!showConfirm}
+                />
+                <TouchableOpacity onPress={() => setShowConfirm(v => !v)} style={styles.eyeBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name={showConfirm ? 'eye-off-outline' : 'eye-outline'} size={18} color="rgba(255,255,255,0.35)" />
+                </TouchableOpacity>
+              </View>
+              {confirmPassword.length > 0 && !passwordsMatch && (
+                <Text style={styles.errorHint}>Las contraseñas no coinciden</Text>
+              )}
             </View>
           </View>
 
           <TouchableOpacity
-            style={[styles.btn, (!formValid || loading) && styles.btnDisabled]}
-            onPress={handleSubmit}
-            disabled={!formValid || loading}
+            style={[styles.btn, (!canSubmit || loading) && styles.btnDisabled]}
+            onPress={handleRegister}
+            disabled={!canSubmit || loading}
           >
             {loading
               ? <ActivityIndicator color="#080808" />
@@ -171,15 +209,12 @@ export default function RegisterScreen({ navigation }: Props) {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Terms modal */}
+      {/* Terms modal — shown immediately on enter */}
       <Modal visible={showTerms} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Términos y privacidad</Text>
-              <TouchableOpacity onPress={() => setShowTerms(false)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-                <Ionicons name="close" size={20} color="rgba(255,255,255,0.4)" />
-              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Antes de continuar</Text>
             </View>
 
             {!scrolledToBottom && (
@@ -194,7 +229,6 @@ export default function RegisterScreen({ navigation }: Props) {
               contentContainerStyle={styles.modalScrollContent}
               onScroll={handleScroll}
               scrollEventThrottle={16}
-              showsVerticalScrollIndicator={true}
             >
               <Text style={styles.legalText}>{LEGAL_TEXT}</Text>
             </ScrollView>
@@ -202,12 +236,15 @@ export default function RegisterScreen({ navigation }: Props) {
             <View style={styles.modalFooter}>
               <TouchableOpacity
                 style={[styles.acceptBtn, !scrolledToBottom && styles.acceptBtnDisabled]}
-                onPress={handleAccept}
+                onPress={handleAcceptTerms}
                 disabled={!scrolledToBottom}
               >
-                <Text style={styles.acceptBtnText}>
-                  {scrolledToBottom ? 'Acepto y crear cuenta' : 'Lee los términos completos ↑'}
+                <Text style={[styles.acceptBtnText, !scrolledToBottom && styles.acceptBtnTextDisabled]}>
+                  {scrolledToBottom ? 'Acepto y continuar' : 'Lee los términos completos ↓'}
                 </Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.declineBtn} onPress={handleDeclineTerms}>
+                <Text style={styles.declineBtnText}>No acepto</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -232,7 +269,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 14, color: '#fff', fontSize: 15,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
   },
+  passwordRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    paddingRight: 14,
+  },
+  passwordInput: {
+    flex: 1, color: '#fff', fontSize: 15,
+    paddingHorizontal: 16, paddingVertical: 14,
+  },
+  eyeBtn: { padding: 4 },
   hint: { fontSize: 11, color: 'rgba(255,255,255,0.25)', marginTop: 2 },
+  errorHint: { fontSize: 11, color: 'rgba(255,100,100,0.7)', marginTop: 2 },
   divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.06)' },
   btn: { backgroundColor: '#fff', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 20 },
   btnDisabled: { opacity: 0.4 },
@@ -240,18 +289,15 @@ const styles = StyleSheet.create({
   loginLink: { textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 13 },
   loginLinkBold: { color: 'rgba(255,255,255,0.7)', fontWeight: '600' },
 
-  modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'flex-end',
-  },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
   modalSheet: {
     backgroundColor: '#111', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    height: '85%', overflow: 'hidden',
+    height: '88%', overflow: 'hidden',
   },
   modalHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 20, paddingVertical: 18,
     borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)',
+    alignItems: 'center',
   },
   modalTitle: { color: '#fff', fontSize: 16, fontWeight: '500' },
   scrollHint: {
@@ -260,16 +306,20 @@ const styles = StyleSheet.create({
   },
   scrollHintText: { color: 'rgba(255,255,255,0.3)', fontSize: 12 },
   modalScroll: { flex: 1 },
-  modalScrollContent: { padding: 20, paddingBottom: 8 },
+  modalScrollContent: { padding: 20, paddingBottom: 16 },
   legalText: { color: 'rgba(255,255,255,0.5)', fontSize: 13, lineHeight: 22 },
   modalFooter: {
     padding: 16, paddingBottom: Platform.OS === 'ios' ? 32 : 16,
     borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.07)',
+    gap: 10,
   },
   acceptBtn: {
     backgroundColor: '#fff', borderRadius: 14,
     paddingVertical: 16, alignItems: 'center',
   },
-  acceptBtnDisabled: { backgroundColor: 'rgba(255,255,255,0.12)' },
+  acceptBtnDisabled: { backgroundColor: 'rgba(255,255,255,0.08)' },
   acceptBtnText: { color: '#080808', fontSize: 15, fontWeight: '600' },
+  acceptBtnTextDisabled: { color: 'rgba(255,255,255,0.25)' },
+  declineBtn: { alignItems: 'center', paddingVertical: 8 },
+  declineBtnText: { color: 'rgba(255,255,255,0.25)', fontSize: 13 },
 });
