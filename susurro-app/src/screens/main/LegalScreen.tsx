@@ -81,7 +81,7 @@ Tienes derecho a:
 Usamos conexiones cifradas (HTTPS/TLS) para todas las comunicaciones. Las contraseñas se almacenan con hash bcrypt.
 
 8. MENORES DE EDAD
-Susurro no está dirigido a menores de 13 años. Si eres menor de 13, no uses esta app.
+Susurro es exclusivamente para mayores de 18 años. Si eres menor de 18, no puedes usar esta app.
 
 9. CAMBIOS A ESTA POLÍTICA
 Te notificaremos en la app si hacemos cambios importantes.

@@ -59,7 +59,7 @@ No vendemos tu información. Solo podemos compartirla con autoridades legales an
 Al eliminar tu cuenta, todos tus datos se borran permanentemente de nuestra base de datos.
 
 6. MENORES DE EDAD
-Susurro no está dirigido a menores de 13 años.
+Susurro es exclusivamente para mayores de 18 años. Si eres menor de 18, no puedes usar esta app.
 
 7. CONTACTO
 legal@susurro.app`;
