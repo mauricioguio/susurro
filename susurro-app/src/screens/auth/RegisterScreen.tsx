@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { authApi } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 
@@ -10,10 +11,11 @@ export default function RegisterScreen({ navigation }: Props) {
   const [alias, setAlias] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const login = useAuthStore(s => s.login);
 
-  const canSubmit = alias.trim() && email.trim() && password.length >= 8;
+  const canSubmit = alias.trim() && email.trim() && password.length >= 8 && termsAccepted;
 
   const handleRegister = async () => {
     if (!canSubmit) return;
@@ -81,6 +83,22 @@ export default function RegisterScreen({ navigation }: Props) {
           </View>
         </View>
 
+        <TouchableOpacity style={styles.termsRow} onPress={() => setTermsAccepted(v => !v)} activeOpacity={0.7}>
+          <View style={[styles.checkbox, termsAccepted && styles.checkboxActive]}>
+            {termsAccepted && <Ionicons name="checkmark" size={13} color="#080808" />}
+          </View>
+          <Text style={styles.termsText}>
+            Acepto los{' '}
+            <Text style={styles.termsLink} onPress={() => navigation.navigate('Legal', { type: 'terms' })}>
+              Términos de servicio
+            </Text>
+            {' '}y la{' '}
+            <Text style={styles.termsLink} onPress={() => navigation.navigate('Legal', { type: 'privacy' })}>
+              Política de privacidad
+            </Text>
+          </Text>
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={[styles.btn, (!canSubmit || loading) && styles.btnDisabled]}
           onPress={handleRegister}
@@ -124,4 +142,14 @@ const styles = StyleSheet.create({
   btnText: { color: '#080808', fontSize: 15, fontWeight: '600' },
   loginLink: { textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 13 },
   loginLinkBold: { color: 'rgba(255,255,255,0.7)', fontWeight: '600' },
+
+  termsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 16 },
+  checkbox: {
+    width: 20, height: 20, borderRadius: 6, marginTop: 1,
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  checkboxActive: { backgroundColor: '#fff', borderColor: '#fff' },
+  termsText: { flex: 1, color: 'rgba(255,255,255,0.35)', fontSize: 13, lineHeight: 20 },
+  termsLink: { color: 'rgba(255,255,255,0.7)', textDecorationLine: 'underline' },
 });
