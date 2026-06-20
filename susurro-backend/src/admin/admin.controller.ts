@@ -124,19 +124,21 @@ export class AdminController {
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:-apple-system,sans-serif;background:#0d0d0d;color:#e0e0e0;min-height:100vh}
 
-    /* Login */
     #login{display:flex;flex-direction:column;align-items:center;justify-content:center;
            min-height:100vh;gap:16px;padding:24px}
     #login h1{font-size:26px;font-weight:300;font-style:italic;color:#fff}
     #login p{color:rgba(255,255,255,0.35);font-size:13px}
-    #login input{width:100%;max-width:320px;padding:14px 16px;background:rgba(255,255,255,0.07);
-                 border:1px solid rgba(255,255,255,0.12);border-radius:12px;
-                 color:#fff;font-size:15px;outline:none}
-    #login button{width:100%;max-width:320px;padding:14px;background:#fff;color:#080808;
+    .pw-wrap{position:relative;width:100%;max-width:320px}
+    .pw-wrap input{width:100%;padding:14px 44px 14px 16px;background:rgba(255,255,255,0.07);
+                   border:1px solid rgba(255,255,255,0.12);border-radius:12px;
+                   color:#fff;font-size:15px;outline:none}
+    .eye{position:absolute;right:14px;top:50%;transform:translateY(-50%);
+         background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.4);
+         font-size:18px;line-height:1;padding:0}
+    #login button.main{width:100%;max-width:320px;padding:14px;background:#fff;color:#080808;
                   border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer}
     #login .err{color:rgba(255,80,80,0.8);font-size:13px;display:none}
 
-    /* Panel */
     #panel{display:none;padding:24px}
     .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
     .logo{font-size:22px;font-weight:300;font-style:italic;color:#fff}
@@ -163,20 +165,21 @@ export class AdminController {
 </head>
 <body>
 
-<!-- Login -->
 <div id="login">
   <h1>susurro</h1>
   <p>Panel de moderación</p>
-  <input id="keyInput" type="password" placeholder="Clave de administrador" />
-  <button onclick="doLogin()">Entrar</button>
+  <div class="pw-wrap">
+    <input id="keyInput" type="password" placeholder="Clave de administrador" />
+    <button class="eye" id="eyeBtn" type="button">&#128065;</button>
+  </div>
+  <button class="main" id="loginBtn">Entrar</button>
   <span class="err" id="err">Clave incorrecta</span>
 </div>
 
-<!-- Panel -->
 <div id="panel">
   <div class="top">
     <span class="logo">susurro <span style="font-style:normal;font-size:13px;color:rgba(255,255,255,0.3)">admin</span></span>
-    <button class="logout" onclick="logout()">Cerrar sesión</button>
+    <button class="logout" id="logoutBtn">Cerrar sesión</button>
   </div>
   <div id="content"></div>
 </div>
@@ -184,129 +187,171 @@ export class AdminController {
 <div id="toast"></div>
 
 <script>
-const API = '${BASE}';
-let KEY = '';
+(function() {
+  var API = '${BASE}';
+  var KEY = '';
 
-async function doLogin() {
-  const k = document.getElementById('keyInput').value.trim();
-  if (!k) return;
-  try {
-    const r = await fetch(API + '/admin/verify', {
+  // ─── Login ───────────────────────────────────────────────────────────────
+
+  document.getElementById('eyeBtn').addEventListener('click', function() {
+    var inp = document.getElementById('keyInput');
+    var isHidden = inp.type === 'password';
+    inp.type = isHidden ? 'text' : 'password';
+    this.innerHTML = isHidden ? '&#128064;' : '&#128065;';
+  });
+
+  document.getElementById('keyInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  document.getElementById('loginBtn').addEventListener('click', doLogin);
+  document.getElementById('logoutBtn').addEventListener('click', logout);
+
+  function doLogin() {
+    var k = document.getElementById('keyInput').value.trim();
+    if (!k) return;
+    fetch(API + '/admin/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ key: k }),
-    });
-    if (r.ok) {
-      KEY = k;
-      sessionStorage.setItem('adminKey', k);
-      showPanel();
-    } else {
+    }).then(function(r) {
+      if (r.ok) {
+        KEY = k;
+        sessionStorage.setItem('adminKey', k);
+        showPanel();
+      } else {
+        document.getElementById('err').style.display = 'block';
+      }
+    }).catch(function() {
       document.getElementById('err').style.display = 'block';
-    }
-  } catch { document.getElementById('err').style.display = 'block'; }
-}
-
-document.getElementById('keyInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') doLogin();
-});
-
-function logout() {
-  sessionStorage.removeItem('adminKey');
-  KEY = '';
-  document.getElementById('panel').style.display = 'none';
-  document.getElementById('login').style.display = 'flex';
-}
-
-async function showPanel() {
-  document.getElementById('login').style.display = 'none';
-  document.getElementById('panel').style.display = 'block';
-  document.getElementById('content').innerHTML = '<p style="color:rgba(255,255,255,0.3);font-size:13px">Cargando...</p>';
-  try {
-    const r = await fetch(API + '/admin/data', { headers: { 'x-admin-key': KEY } });
-    const { reports, bannedUsers } = await r.json();
-    renderPanel(reports, bannedUsers);
-  } catch { document.getElementById('content').innerHTML = '<p style="color:red">Error cargando datos</p>'; }
-}
-
-function renderPanel(reports, bannedUsers) {
-  let html = '';
-
-  html += '<h2>Reportes pendientes <span class="badge">' + reports.length + '</span></h2>';
-  if (reports.length === 0) {
-    html += '<p class="empty">Sin reportes pendientes.</p>';
-  } else {
-    html += '<table><thead><tr><th>Reportado por</th><th>Razón</th><th>Contenido</th><th>Estado</th><th>Autor</th><th>Acciones</th></tr></thead><tbody>';
-    for (const r of reports) {
-      const c = r.confession;
-      const content = c.audioUrl ? '🎙️ Nota de voz' : (c.text || '').slice(0, 120);
-      html += '<tr>';
-      html += '<td>' + esc(r.user.alias) + '</td>';
-      html += '<td>' + esc(r.reason) + '</td>';
-      html += '<td class="txt">' + esc(content) + '</td>';
-      html += '<td>' + (c.hidden ? '🚫 Oculta' : '✅ Visible') + '</td>';
-      html += '<td>' + esc(c.user.alias) + (c.user.banned ? ' 🔴' : '') + '</td>';
-      html += '<td>';
-      if (c.hidden)
-        html += '<button onclick="act(\'PATCH\',\'/admin/confessions/' + c.id + '/unhide\')">Mostrar</button>';
-      else
-        html += '<button class="danger" onclick="act(\'PATCH\',\'/admin/confessions/' + c.id + '/hide\')">Ocultar</button>';
-      if (!c.user.banned)
-        html += '<button class="danger" onclick="banUser(\'' + c.user.id + '\')">Banear usuario</button>';
-      else
-        html += '<button onclick="act(\'POST\',\'/admin/users/' + c.user.id + '/unban\')">Desbanear</button>';
-      html += '<button onclick="act(\'PATCH\',\'/admin/reports/' + r.id + '/resolve\')">Resolver</button>';
-      html += '</td></tr>';
-    }
-    html += '</tbody></table>';
+    });
   }
 
-  html += '<h2>Usuarios baneados <span class="badge">' + bannedUsers.length + '</span></h2>';
-  if (bannedUsers.length === 0) {
-    html += '<p class="empty">Sin usuarios baneados.</p>';
-  } else {
-    html += '<table><thead><tr><th>Alias</th><th>Razón</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody>';
-    for (const u of bannedUsers) {
-      html += '<tr><td>' + esc(u.alias) + '</td><td>' + esc(u.bannedReason || '') + '</td>';
-      html += '<td>' + new Date(u.createdAt).toLocaleDateString('es') + '</td>';
-      html += '<td><button onclick="act(\'POST\',\'/admin/users/' + u.id + '/unban\')">Desbanear</button></td></tr>';
-    }
-    html += '</tbody></table>';
+  function logout() {
+    sessionStorage.removeItem('adminKey');
+    KEY = '';
+    document.getElementById('panel').style.display = 'none';
+    document.getElementById('login').style.display = 'flex';
   }
 
-  document.getElementById('content').innerHTML = html;
-}
+  // ─── Panel ───────────────────────────────────────────────────────────────
 
-async function act(method, path, body) {
-  try {
-    const r = await fetch(API + path, {
-      method,
+  function showPanel() {
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('panel').style.display = 'block';
+    document.getElementById('content').innerHTML = '<p style="color:rgba(255,255,255,0.3);font-size:13px">Cargando...</p>';
+    fetch(API + '/admin/data', { headers: { 'x-admin-key': KEY } })
+      .then(function(r) { return r.json(); })
+      .then(function(d) { renderPanel(d.reports, d.bannedUsers); })
+      .catch(function() {
+        document.getElementById('content').innerHTML = '<p style="color:red">Error cargando datos</p>';
+      });
+  }
+
+  function esc(s) {
+    return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function renderPanel(reports, bannedUsers) {
+    var html = '';
+
+    html += '<h2>Reportes pendientes <span class="badge">' + reports.length + '</span></h2>';
+    if (reports.length === 0) {
+      html += '<p class="empty">Sin reportes pendientes.</p>';
+    } else {
+      html += '<table><thead><tr><th>Reportado por</th><th>Razón</th><th>Contenido</th><th>Estado</th><th>Autor</th><th>Acciones</th></tr></thead><tbody>';
+      for (var i = 0; i < reports.length; i++) {
+        var rep = reports[i];
+        var c = rep.confession;
+        var content = c.audioUrl ? 'Nota de voz' : (c.text || '').slice(0, 120);
+        html += '<tr>';
+        html += '<td>' + esc(rep.user.alias) + '</td>';
+        html += '<td>' + esc(rep.reason) + '</td>';
+        html += '<td class="txt">' + esc(content) + '</td>';
+        html += '<td>' + (c.hidden ? 'Oculta' : 'Visible') + '</td>';
+        html += '<td>' + esc(c.user.alias) + (c.user.banned ? ' [B]' : '') + '</td>';
+        html += '<td>';
+        if (c.hidden) {
+          html += '<button data-action="unhide" data-id="' + esc(c.id) + '">Mostrar</button>';
+        } else {
+          html += '<button class="danger" data-action="hide" data-id="' + esc(c.id) + '">Ocultar</button>';
+        }
+        if (!c.user.banned) {
+          html += '<button class="danger" data-action="ban" data-uid="' + esc(c.user.id) + '">Banear usuario</button>';
+        } else {
+          html += '<button data-action="unban-user" data-uid="' + esc(c.user.id) + '">Desbanear</button>';
+        }
+        html += '<button data-action="resolve" data-id="' + esc(rep.id) + '">Resolver</button>';
+        html += '</td></tr>';
+      }
+      html += '</tbody></table>';
+    }
+
+    html += '<h2>Usuarios baneados <span class="badge">' + bannedUsers.length + '</span></h2>';
+    if (bannedUsers.length === 0) {
+      html += '<p class="empty">Sin usuarios baneados.</p>';
+    } else {
+      html += '<table><thead><tr><th>Alias</th><th>Razón</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody>';
+      for (var j = 0; j < bannedUsers.length; j++) {
+        var u = bannedUsers[j];
+        html += '<tr><td>' + esc(u.alias) + '</td><td>' + esc(u.bannedReason || '') + '</td>';
+        html += '<td>' + new Date(u.createdAt).toLocaleDateString('es') + '</td>';
+        html += '<td><button data-action="unban-user" data-uid="' + esc(u.id) + '">Desbanear</button></td></tr>';
+      }
+      html += '</tbody></table>';
+    }
+
+    document.getElementById('content').innerHTML = html;
+  }
+
+  // Delegación de eventos — evita problemas con onclick inline
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    var action = btn.dataset.action;
+    var id = btn.dataset.id;
+    var uid = btn.dataset.uid;
+
+    if (action === 'hide') {
+      act('PATCH', '/admin/confessions/' + id + '/hide');
+    } else if (action === 'unhide') {
+      act('PATCH', '/admin/confessions/' + id + '/unhide');
+    } else if (action === 'resolve') {
+      act('PATCH', '/admin/reports/' + id + '/resolve');
+    } else if (action === 'ban') {
+      var reason = prompt('Razón del baneo:');
+      if (reason) act('POST', '/admin/users/' + uid + '/ban', { reason: reason });
+    } else if (action === 'unban-user') {
+      act('POST', '/admin/users/' + uid + '/unban');
+    }
+  });
+
+  function act(method, path, body) {
+    fetch(API + path, {
+      method: method,
       headers: { 'x-admin-key': KEY, 'Content-Type': 'application/json' },
       body: body ? JSON.stringify(body) : undefined,
-    });
-    if (r.ok) { toast('✓ Listo'); setTimeout(() => showPanel(), 600); }
-    else { const d = await r.json(); toast('Error: ' + (d.message || r.status)); }
-  } catch { toast('Error de red'); }
-}
+    }).then(function(r) {
+      if (r.ok) {
+        toast('Listo');
+        setTimeout(showPanel, 600);
+      } else {
+        return r.json().then(function(d) { toast('Error: ' + (d.message || r.status)); });
+      }
+    }).catch(function() { toast('Error de red'); });
+  }
 
-function banUser(id) {
-  const reason = prompt('Razón del baneo:');
-  if (!reason) return;
-  act('POST', '/admin/users/' + id + '/ban', { reason });
-}
+  function toast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    setTimeout(function() { t.style.display = 'none'; }, 2000);
+  }
 
-function esc(s) {
-  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-function toast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.style.display = 'block';
-  setTimeout(() => t.style.display = 'none', 2000);
-}
-
-// Auto-login si hay clave guardada en sesión
-const saved = sessionStorage.getItem('adminKey');
-if (saved) { KEY = saved; showPanel(); }
+  // Auto-login si hay clave en sesión
+  var saved = sessionStorage.getItem('adminKey');
+  if (saved) { KEY = saved; showPanel(); }
+})();
 </script>
 </body>
 </html>`;
