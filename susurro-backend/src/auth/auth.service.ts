@@ -19,6 +19,8 @@ export class AuthService {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) throw new BadRequestException('El correo no tiene un formato válido.');
     if (password.length < 8) throw new BadRequestException('La contraseña debe tener al menos 8 caracteres.');
+    if (!/[A-Z]/.test(password)) throw new BadRequestException('La contraseña debe tener al menos una mayúscula.');
+    if (!/[^a-zA-Z0-9]/.test(password)) throw new BadRequestException('La contraseña debe tener al menos un carácter especial (!@#$%...).');
     if (alias.trim().length < 3) throw new BadRequestException('El alias debe tener al menos 3 caracteres.');
     if (!/^[a-zA-Z0-9_áéíóúÁÉÍÓÚñÑ\-\.]+$/.test(alias))
       throw new BadRequestException('El alias solo puede contener letras, números, guiones y puntos.');

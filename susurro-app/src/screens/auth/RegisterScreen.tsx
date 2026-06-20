@@ -79,7 +79,13 @@ export default function RegisterScreen({ navigation }: Props) {
   const login = useAuthStore(s => s.login);
 
   const passwordsMatch = password === confirmPassword;
-  const canSubmit = alias.trim() && email.trim() && password.length >= 8 && passwordsMatch;
+  const passRules = {
+    length:  password.length >= 8,
+    upper:   /[A-Z]/.test(password),
+    special: /[^a-zA-Z0-9]/.test(password),
+  };
+  const passwordValid = passRules.length && passRules.upper && passRules.special;
+  const canSubmit = alias.trim() && email.trim() && passwordValid && passwordsMatch;
 
   const handleAgeConfirm = (isAdult: boolean) => {
     if (isAdult) {
@@ -185,6 +191,20 @@ export default function RegisterScreen({ navigation }: Props) {
                 </TouchableOpacity>
               </View>
             </View>
+
+            {password.length > 0 && (
+              <View style={styles.passRules}>
+                <Text style={[styles.passRule, passRules.length && styles.passRuleOk]}>
+                  {passRules.length ? '✓' : '○'} Mínimo 8 caracteres
+                </Text>
+                <Text style={[styles.passRule, passRules.upper && styles.passRuleOk]}>
+                  {passRules.upper ? '✓' : '○'} Al menos una mayúscula
+                </Text>
+                <Text style={[styles.passRule, passRules.special && styles.passRuleOk]}>
+                  {passRules.special ? '✓' : '○'} Al menos un carácter especial (!@#$%...)
+                </Text>
+              </View>
+            )}
 
             <View style={styles.field}>
               <Text style={styles.label}>Confirmar contraseña</Text>
@@ -317,6 +337,9 @@ const styles = StyleSheet.create({
   eyeBtn: { padding: 4 },
   hint: { fontSize: 11, color: 'rgba(255,255,255,0.25)', marginTop: 2 },
   errorHint: { fontSize: 11, color: 'rgba(255,100,100,0.7)', marginTop: 2 },
+  passRules: { gap: 4, marginTop: 2 },
+  passRule: { fontSize: 11, color: 'rgba(255,255,255,0.25)' },
+  passRuleOk: { color: 'rgba(100,220,100,0.7)' },
   divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.06)' },
   btn: { backgroundColor: '#fff', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 20 },
   btnDisabled: { opacity: 0.4 },
