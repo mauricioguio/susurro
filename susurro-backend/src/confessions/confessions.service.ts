@@ -49,6 +49,7 @@ export class ConfessionsService {
   async create(userId: string, data: {
     text?: string;
     audioUrl?: string;
+    waveform?: number[];
     tags?: string[];
     expiresAt?: string;
     pollQuestion?: string;
@@ -72,6 +73,7 @@ export class ConfessionsService {
         userId,
         text: data.text ?? null,
         audioUrl: data.audioUrl ?? null,
+        waveform: data.waveform ?? [],
         tags: data.tags ?? [],
         pollQuestion: data.pollQuestion ?? null,
         expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,

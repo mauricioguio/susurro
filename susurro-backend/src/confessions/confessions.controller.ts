@@ -31,6 +31,7 @@ export class ConfessionsController {
   create(@Request() req: any, @Body() body: {
     text?: string;
     audioUrl?: string;
+    waveform?: number[];
     tags?: string[];
     expiresAt?: string;
     pollQuestion?: string;
