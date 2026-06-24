@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text, TouchableOpacity } from 'react-native';
@@ -23,17 +23,56 @@ import RepliesScreen from '../screens/main/RepliesScreen';
 import ConfessionDetailScreen from '../screens/main/ConfessionDetailScreen';
 import NotificationsScreen from '../screens/main/NotificationsScreen';
 import LegalScreen from '../screens/main/LegalScreen';
+import MessagesScreen from '../screens/main/MessagesScreen';
+import ChatScreen from '../screens/main/ChatScreen';
+import { AnimatedBackground } from '../components/AnimatedBackground';
 import { useAuthStore } from '../store/authStore';
 import { useNotifications } from '../hooks/useNotifications';
 
 const Stack = createNativeStackNavigator();
 const Tab   = createBottomTabNavigator();
 
+const TransparentTheme = {
+  ...DarkTheme,
+  colors: { ...DarkTheme.colors, background: '#080808' },
+};
+
+function withBg<T extends object>(Comp: React.ComponentType<T>): React.ComponentType<T> {
+  return function WrappedWithBg(props: T) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#080808' }}>
+        <AnimatedBackground />
+        <Comp {...props} />
+      </View>
+    );
+  };
+}
+
+const OnboardingWithBg      = withBg(OnboardingScreen);
+const WelcomeWithBg         = withBg(WelcomeScreen);
+const RegisterWithBg        = withBg(RegisterScreen);
+const LoginWithBg           = withBg(LoginScreen);
+const ForgotPasswordWithBg  = withBg(ForgotPasswordScreen);
+const FeedWithBg            = withBg(FeedScreen);
+const ExploreWithBg         = withBg(ExploreScreen);
+const BookmarksWithBg       = withBg(BookmarksScreen);
+const ProfileWithBg         = withBg(ProfileScreen);
+const UserProfileWithBg     = withBg(UserProfileScreen);
+const CommentsWithBg        = withBg(CommentsScreen);
+const RepliesWithBg         = withBg(RepliesScreen);
+const ConfessionDetailWithBg = withBg(ConfessionDetailScreen);
+const NotificationsWithBg   = withBg(NotificationsScreen);
+const LegalWithBg           = withBg(LegalScreen);
+const NewConfessionWithBg   = withBg(NewConfessionScreen);
+const MessagesWithBg        = withBg(MessagesScreen);
+const ChatWithBg            = withBg(ChatScreen);
+
 function MainTabs({ navigation }: any) {
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
+        sceneContainerStyle: { backgroundColor: 'transparent' },
         tabBarStyle: {
           backgroundColor: '#0d0d0d',
           borderTopColor: 'rgba(255,255,255,0.06)',
@@ -47,7 +86,7 @@ function MainTabs({ navigation }: any) {
     >
       <Tab.Screen
         name="Feed"
-        component={FeedScreen}
+        component={FeedWithBg}
         options={{
           tabBarLabel: 'Inicio',
           tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'home' : 'home-outline'} size={22} color={color} />,
@@ -55,7 +94,7 @@ function MainTabs({ navigation }: any) {
       />
       <Tab.Screen
         name="Explore"
-        component={ExploreScreen}
+        component={ExploreWithBg}
         options={{
           tabBarLabel: 'Explorar',
           tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'search' : 'search-outline'} size={22} color={color} />,
@@ -63,7 +102,7 @@ function MainTabs({ navigation }: any) {
       />
       <Tab.Screen
         name="NewTab"
-        component={FeedScreen}
+        component={FeedWithBg}
         options={{
           tabBarLabel: '',
           tabBarIcon: () => (
@@ -83,7 +122,7 @@ function MainTabs({ navigation }: any) {
       />
       <Tab.Screen
         name="Bookmarks"
-        component={BookmarksScreen}
+        component={BookmarksWithBg}
         options={{
           tabBarLabel: 'Guardados',
           tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'bookmark' : 'bookmark-outline'} size={22} color={color} />,
@@ -91,7 +130,7 @@ function MainTabs({ navigation }: any) {
       />
       <Tab.Screen
         name="Profile"
-        component={ProfileScreen}
+        component={ProfileWithBg}
         options={{
           tabBarLabel: 'Perfil',
           tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'person' : 'person-outline'} size={22} color={color} />,
@@ -114,6 +153,7 @@ export default function AppNavigator() {
   if (isLoading || onboarded === null) {
     return (
       <View style={{ flex: 1, backgroundColor: '#080808', justifyContent: 'center', alignItems: 'center' }}>
+        <AnimatedBackground />
         <ActivityIndicator color="rgba(255,255,255,0.3)" />
       </View>
     );
@@ -130,26 +170,28 @@ export default function AppNavigator() {
   };
 
   return (
-    <NavigationContainer linking={linking}>
-      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
+    <NavigationContainer theme={TransparentTheme} linking={linking}>
+      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade', contentStyle: { backgroundColor: 'transparent' } }}>
         {!token ? (
           <>
-            {!onboarded && <Stack.Screen name="Onboarding" component={OnboardingScreen} />}
-            <Stack.Screen name="Welcome"        component={WelcomeScreen} />
-            <Stack.Screen name="Register"       component={RegisterScreen} />
-            <Stack.Screen name="Login"          component={LoginScreen} />
-            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+            {!onboarded && <Stack.Screen name="Onboarding" component={OnboardingWithBg} />}
+            <Stack.Screen name="Welcome"        component={WelcomeWithBg} />
+            <Stack.Screen name="Register"       component={RegisterWithBg} />
+            <Stack.Screen name="Login"          component={LoginWithBg} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordWithBg} />
           </>
         ) : (
           <Stack.Screen name="Main" component={MainTabs} />
         )}
-        <Stack.Screen name="NewConfession" component={NewConfessionScreen} options={{ animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="UserProfile" component={UserProfileScreen} />
-        <Stack.Screen name="Comments" component={CommentsScreen} />
-        <Stack.Screen name="Replies" component={RepliesScreen} />
-        <Stack.Screen name="ConfessionDetail" component={ConfessionDetailScreen} />
-        <Stack.Screen name="Notifications" component={NotificationsScreen} />
-        <Stack.Screen name="Legal" component={LegalScreen} />
+        <Stack.Screen name="NewConfession"    component={NewConfessionWithBg} options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="UserProfile"      component={UserProfileWithBg} />
+        <Stack.Screen name="Comments"         component={CommentsWithBg} />
+        <Stack.Screen name="Replies"          component={RepliesWithBg} />
+        <Stack.Screen name="ConfessionDetail" component={ConfessionDetailWithBg} />
+        <Stack.Screen name="Notifications"    component={NotificationsWithBg} />
+        <Stack.Screen name="Messages"         component={MessagesWithBg} />
+        <Stack.Screen name="Chat"             component={ChatWithBg} />
+        <Stack.Screen name="Legal"            component={LegalWithBg} />
       </Stack.Navigator>
     </NavigationContainer>
   );

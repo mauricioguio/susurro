@@ -3,7 +3,7 @@ import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Image,
 } from 'react-native';
-import { usersApi, confessionsApi } from '../../services/api';
+import { usersApi, confessionsApi, api } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { ConfessionCard, Confession } from '../../components/ConfessionCard';
 
@@ -70,18 +70,31 @@ export default function UserProfileScreen({ route, navigation }: any) {
           <Text style={styles.back}>← Volver</Text>
         </TouchableOpacity>
         {!isOwnProfile && (
-          <TouchableOpacity
-            style={[styles.followBtn, following && styles.followingBtn]}
-            onPress={handleFollow}
-            disabled={followLoading}
-          >
-            {followLoading
-              ? <ActivityIndicator color={following ? '#fff' : '#080808'} size="small" />
-              : <Text style={[styles.followText, following && styles.followingText]}>
-                  {following ? 'Siguiendo' : 'Seguir'}
-                </Text>
-            }
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <TouchableOpacity
+              style={styles.msgBtn}
+              onPress={async () => {
+                try {
+                  const { data } = await api.post('/messages/conversations', { alias });
+                  navigation.navigate('Chat', { conversationId: data.id, alias });
+                } catch {}
+              }}
+            >
+              <Text style={styles.msgBtnText}>Mensaje</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.followBtn, following && styles.followingBtn]}
+              onPress={handleFollow}
+              disabled={followLoading}
+            >
+              {followLoading
+                ? <ActivityIndicator color={following ? '#fff' : '#080808'} size="small" />
+                : <Text style={[styles.followText, following && styles.followingText]}>
+                    {following ? 'Siguiendo' : 'Seguir'}
+                  </Text>
+              }
+            </TouchableOpacity>
+          </View>
         )}
       </View>
 
@@ -125,7 +138,7 @@ export default function UserProfileScreen({ route, navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#080808' },
+  container: { flex: 1, backgroundColor: 'transparent' },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 20, paddingTop: 56, paddingBottom: 20,
@@ -138,6 +151,11 @@ const styles = StyleSheet.create({
   followingBtn: { backgroundColor: 'transparent', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
   followText: { color: '#080808', fontSize: 14, fontWeight: '600' },
   followingText: { color: 'rgba(255,255,255,0.5)' },
+  msgBtn: {
+    backgroundColor: 'transparent', borderWidth: 1, borderColor: 'rgba(110,142,251,0.5)',
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, alignItems: 'center',
+  },
+  msgBtnText: { color: '#6e8efb', fontSize: 14, fontWeight: '600' },
   aliasRow: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
     paddingHorizontal: 20, paddingBottom: 20,
