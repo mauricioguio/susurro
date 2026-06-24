@@ -11,14 +11,24 @@ import { MessagesService } from './messages.service';
 export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
 
-  // userId → Set of socket IDs (a user can have multiple tabs/devices)
+  // userId → Set of socket IDs
   private userSockets = new Map<string, Set<string>>();
+  // conversationId → Set of userIds currently viewing that chat
+  private conversationPresence = new Map<string, Set<string>>();
 
   constructor(
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly messagesService: MessagesService,
   ) {}
+
+  private emitToUser(userId: string, event: string, data: any, excludeSocketId?: string) {
+    const sockets = this.userSockets.get(userId);
+    if (!sockets) return;
+    for (const sid of sockets) {
+      if (sid !== excludeSocketId) this.server.to(sid).emit(event, data);
+    }
+  }
 
   handleConnection(client: Socket) {
     const token = client.handshake.auth?.token as string | undefined;
@@ -35,13 +45,101 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
     }
   }
 
-  handleDisconnect(client: Socket) {
+  async handleDisconnect(client: Socket) {
     const userId = client.data.userId as string | undefined;
     if (!userId) return;
+
     const sockets = this.userSockets.get(userId);
     if (sockets) {
       sockets.delete(client.id);
-      if (sockets.size === 0) this.userSockets.delete(userId);
+      if (sockets.size === 0) {
+        this.userSockets.delete(userId);
+        // Notify partners in any conversation this user was viewing
+        for (const [convId, users] of this.conversationPresence.entries()) {
+          if (users.has(userId)) {
+            users.delete(userId);
+            const otherId = await this.messagesService.getOtherParticipantId(convId, userId);
+            if (otherId) {
+              this.emitToUser(otherId, 'partnerStatus', { conversationId: convId, isOnline: false });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  @SubscribeMessage('enterConversation')
+  async handleEnterConversation(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { conversationId: string },
+  ) {
+    const userId = client.data.userId as string;
+    const { conversationId } = payload;
+    if (!userId || !conversationId) return;
+
+    if (!this.conversationPresence.has(conversationId)) {
+      this.conversationPresence.set(conversationId, new Set());
+    }
+    this.conversationPresence.get(conversationId)!.add(userId);
+
+    const otherId = await this.messagesService.getOtherParticipantId(conversationId, userId);
+    if (!otherId) return;
+
+    // Tell me if partner is online in this chat
+    const partnerInConvo = this.conversationPresence.get(conversationId)?.has(otherId) ?? false;
+    client.emit('partnerStatus', { conversationId, isOnline: partnerInConvo });
+
+    // Tell partner I'm here
+    this.emitToUser(otherId, 'partnerStatus', { conversationId, isOnline: true });
+  }
+
+  @SubscribeMessage('leaveConversation')
+  async handleLeaveConversation(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { conversationId: string },
+  ) {
+    const userId = client.data.userId as string;
+    const { conversationId } = payload;
+    if (!userId || !conversationId) return;
+
+    this.conversationPresence.get(conversationId)?.delete(userId);
+
+    const otherId = await this.messagesService.getOtherParticipantId(conversationId, userId);
+    if (otherId) {
+      this.emitToUser(otherId, 'partnerStatus', { conversationId, isOnline: false });
+    }
+  }
+
+  @SubscribeMessage('typing')
+  async handleTyping(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { conversationId: string; isTyping: boolean },
+  ) {
+    const userId = client.data.userId as string;
+    if (!userId || !payload?.conversationId) return;
+
+    const otherId = await this.messagesService.getOtherParticipantId(payload.conversationId, userId);
+    if (otherId) {
+      this.emitToUser(otherId, 'partnerTyping', {
+        conversationId: payload.conversationId,
+        isTyping: payload.isTyping,
+      });
+    }
+  }
+
+  @SubscribeMessage('markRead')
+  async handleMarkRead(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { conversationId: string },
+  ) {
+    const userId = client.data.userId as string;
+    if (!userId || !payload?.conversationId) return;
+
+    await this.messagesService.markMessagesRead(payload.conversationId, userId);
+
+    const otherId = await this.messagesService.getOtherParticipantId(payload.conversationId, userId);
+    if (otherId) {
+      this.emitToUser(otherId, 'messagesRead', { conversationId: payload.conversationId });
     }
   }
 
@@ -57,30 +155,18 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
       const message = await this.messagesService.sendMessage(userId, payload.conversationId, payload.text.trim());
       const otherUserId = await this.messagesService.getOtherParticipantId(payload.conversationId, userId);
 
-      // Emit to all sockets of the sender (other devices)
-      const senderSockets = this.userSockets.get(userId);
-      if (senderSockets) {
-        for (const sid of senderSockets) {
-          if (sid !== client.id) {
-            this.server.to(sid).emit('newMessage', message);
-          }
-        }
-      }
+      // Confirm to sender (current socket only)
+      client.emit('messageSent', message);
 
-      // Emit to the recipient's sockets
+      // Sync sender's other devices
+      this.emitToUser(userId, 'newMessage', message, client.id);
+
+      // Deliver to recipient
       if (otherUserId) {
-        const recipientSockets = this.userSockets.get(otherUserId);
-        if (recipientSockets) {
-          for (const sid of recipientSockets) {
-            this.server.to(sid).emit('newMessage', message);
-          }
-        }
+        this.emitToUser(otherUserId, 'newMessage', message);
       }
-
-      // Ack to sender's current socket
-      return { event: 'messageSent', data: message };
     } catch {
-      return { event: 'error', data: 'No se pudo enviar el mensaje' };
+      client.emit('messageError', { error: 'No se pudo enviar el mensaje' });
     }
   }
 }

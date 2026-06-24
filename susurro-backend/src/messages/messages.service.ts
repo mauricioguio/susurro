@@ -96,6 +96,13 @@ export class MessagesService {
     return message;
   }
 
+  async markMessagesRead(conversationId: string, userId: string) {
+    await this.prisma.message.updateMany({
+      where: { conversationId, senderId: { not: userId }, read: false },
+      data: { read: true },
+    });
+  }
+
   async getOtherParticipantId(conversationId: string, userId: string): Promise<string | null> {
     const other = await this.prisma.conversationParticipant.findFirst({
       where: { conversationId, userId: { not: userId } },
