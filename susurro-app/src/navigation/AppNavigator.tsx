@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { NavigationContainer, DarkTheme } from '@react-navigation/native';
+import { NavigationContainer, DarkTheme, NavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text, TouchableOpacity } from 'react-native';
@@ -143,12 +143,35 @@ function MainTabs({ navigation }: any) {
 export default function AppNavigator() {
   const { token, isLoading, loadFromStorage } = useAuthStore();
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
+  const navigationRef = useRef<NavigationContainerRef<any>>(null);
 
   useEffect(() => {
     loadFromStorage();
     AsyncStorage.getItem('onboarded').then(v => setOnboarded(v === 'true'));
   }, []);
   useNotifications(!!token);
+
+  // Handle tap on push notification → navigate to correct screen
+  useEffect(() => {
+    let sub: any;
+    import('expo-notifications').then(Notifications => {
+      sub = Notifications.addNotificationResponseReceivedListener(response => {
+        const data = response.notification.request.content.data as any;
+        if (!navigationRef.current?.isReady()) return;
+        if (data?.type === 'message' && data?.conversationId) {
+          navigationRef.current.navigate('Chat', {
+            conversationId: data.conversationId,
+            alias: data.alias ?? '',
+          });
+        } else if (data?.confessionId) {
+          navigationRef.current.navigate('ConfessionDetail', {
+            confessionId: data.confessionId,
+          });
+        }
+      });
+    }).catch(() => {});
+    return () => sub?.remove();
+  }, []);
 
   if (isLoading || onboarded === null) {
     return (
@@ -170,7 +193,7 @@ export default function AppNavigator() {
   };
 
   return (
-    <NavigationContainer theme={TransparentTheme} linking={linking}>
+    <NavigationContainer ref={navigationRef} theme={TransparentTheme} linking={linking}>
       <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade', contentStyle: { backgroundColor: 'transparent' } }}>
         {!token ? (
           <>

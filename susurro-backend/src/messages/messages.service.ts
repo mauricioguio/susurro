@@ -103,6 +103,14 @@ export class MessagesService {
     });
   }
 
+  async getUserPushToken(userId: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { pushToken: true },
+    });
+    return user?.pushToken ?? null;
+  }
+
   async getOtherParticipantId(conversationId: string, userId: string): Promise<string | null> {
     const other = await this.prisma.conversationParticipant.findFirst({
       where: { conversationId, userId: { not: userId } },

@@ -3,6 +3,7 @@ import {
   View, Text, FlatList, StyleSheet, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../services/api';
 import { connectSocket, getSocket } from '../../services/socketService';
@@ -22,6 +23,7 @@ type TickStatus = 'sending' | 'delivered' | 'read';
 export default function ChatScreen({ route, navigation }: any) {
   const { conversationId, alias } = route.params as { conversationId: string; alias: string };
   const { user } = useAuthStore();
+  const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
@@ -232,7 +234,7 @@ export default function ChatScreen({ route, navigation }: any) {
       )}
 
       {/* Input */}
-      <View style={styles.inputRow}>
+      <View style={[styles.inputRow, { paddingBottom: Math.max(insets.bottom, 12) }]}>
         <TextInput
           style={styles.input}
           placeholder="Escribe un mensaje..."
@@ -299,7 +301,7 @@ const styles = StyleSheet.create({
 
   inputRow: {
     flexDirection: 'row', alignItems: 'flex-end', gap: 10,
-    paddingHorizontal: 16, paddingVertical: 12,
+    paddingHorizontal: 16, paddingTop: 12,
     borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.07)',
   },
   input: {

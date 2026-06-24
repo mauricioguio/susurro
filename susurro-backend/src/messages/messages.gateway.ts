@@ -6,6 +6,7 @@ import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { MessagesService } from './messages.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @WebSocketGateway({ cors: { origin: '*' }, namespace: '/messages' })
 export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -20,6 +21,7 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly messagesService: MessagesService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   private emitToUser(userId: string, event: string, data: any, excludeSocketId?: string) {
@@ -164,6 +166,25 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
       // Deliver to recipient
       if (otherUserId) {
         this.emitToUser(otherUserId, 'newMessage', message);
+
+        // Push notification if recipient is not viewing this chat
+        const isViewingChat = this.conversationPresence.get(payload.conversationId)?.has(otherUserId) ?? false;
+        if (!isViewingChat) {
+          const pushToken = await this.messagesService.getUserPushToken(otherUserId);
+          if (pushToken) {
+            const preview = message.text.length > 80 ? message.text.slice(0, 80) + '…' : message.text;
+            await this.notificationsService.send({
+              to: pushToken,
+              title: `@${message.sender.alias}`,
+              body: preview,
+              data: {
+                type: 'message',
+                conversationId: payload.conversationId,
+                alias: message.sender.alias,
+              },
+            });
+          }
+        }
       }
     } catch {
       client.emit('messageError', { error: 'No se pudo enviar el mensaje' });
