@@ -47,9 +47,11 @@ export function useNotifications(isLoggedIn: boolean) {
           Constants.expoConfig?.extra?.eas?.projectId as string | undefined
           ?? 'ed4b5937-23df-4ed9-84f0-157f27ae1063';
         const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });
+        console.log('[useNotifications] token obtenido:', token?.slice(0, 50));
         await usersApi.updatePushToken(token);
-      } catch {
-        // No disponible en Expo Go — requiere development build
+        console.log('[useNotifications] token guardado en BD');
+      } catch (e) {
+        console.warn('[useNotifications] error:', e);
       }
     }
 

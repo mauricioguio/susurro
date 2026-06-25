@@ -72,6 +72,7 @@ export class UsersService {
   }
 
   async updatePushToken(userId: string, token: string) {
+    console.log(`[PushToken] save userId=${userId} token=${token?.slice(0, 50) ?? 'null'}`);
     return this.prisma.user.update({
       where: { id: userId },
       data: { pushToken: token },
