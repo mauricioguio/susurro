@@ -11,7 +11,7 @@ import { useAuthStore } from '../../store/authStore';
 import { TAGS } from '../../components/ConfessionCard';
 
 const MAX_CHARS = 500;
-const MAX_RECORD_SECS = 15;
+const MAX_RECORD_SECS = 60;
 const { width: W } = Dimensions.get('window');
 
 type InputMode = 'text' | 'voice';
@@ -48,6 +48,9 @@ export default function NewConfessionScreen({ navigation, route }: any) {
   const [audioUri, setAudioUri] = useState<string | null>(null);
   const [recordSecs, setRecordSecs] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const meteringRef = useRef<number[]>([]);
+  const meteringIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [waveform, setWaveform] = useState<number[]>([]);
   const soundRef = useRef<Audio.Sound | null>(null);
   const [playing, setPlaying] = useState(false);
 
@@ -77,6 +80,16 @@ export default function NewConfessionScreen({ navigation, route }: any) {
       setIsRecording(true);
       setRecordSecs(0);
       setAudioUri(null);
+      meteringRef.current = [];
+      meteringIntervalRef.current = setInterval(async () => {
+        try {
+          const status = await recordingRef.current?.getStatusAsync();
+          if (status?.isRecording && status.metering !== undefined) {
+            const normalized = Math.max(0, Math.min(1, (status.metering + 45) / 40));
+            meteringRef.current.push(normalized);
+          }
+        } catch {}
+      }, 200);
       timerRef.current = setInterval(() => {
         setRecordSecs(s => {
           if (s >= MAX_RECORD_SECS - 1) { stopRecording(); return MAX_RECORD_SECS; }
@@ -90,11 +103,13 @@ export default function NewConfessionScreen({ navigation, route }: any) {
 
   const stopRecording = async () => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    if (meteringIntervalRef.current) { clearInterval(meteringIntervalRef.current); meteringIntervalRef.current = null; }
     if (!recordingRef.current) return;
     try {
       await recordingRef.current.stopAndUnloadAsync();
       const uri = recordingRef.current.getURI();
       setAudioUri(uri ?? null);
+      setWaveform([...meteringRef.current]);
     } catch {}
     recordingRef.current = null;
     setIsRecording(false);
@@ -139,6 +154,7 @@ export default function NewConfessionScreen({ navigation, route }: any) {
       await confessionsApi.create({
         text: mode === 'text' ? text.trim() : undefined,
         audioUrl,
+        waveform: mode === 'voice' ? waveform : undefined,
         tags: selectedTags,
         expiresAt: expiry ? expiryDate(expiry) : undefined,
         pollQuestion: hasPoll ? '¿A alguien más le pasa?' : undefined,
@@ -351,7 +367,7 @@ export default function NewConfessionScreen({ navigation, route }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#080808' },
+  container: { flex: 1, backgroundColor: 'transparent' },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16,
