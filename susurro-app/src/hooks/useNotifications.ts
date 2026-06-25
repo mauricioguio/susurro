@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { usersApi } from '../services/api';
 
 export function useNotifications(isLoggedIn: boolean) {
@@ -42,7 +43,10 @@ export function useNotifications(isLoggedIn: boolean) {
 
         if (status !== 'granted') return;
 
-        const { data: token } = await Notifications.getExpoPushTokenAsync();
+        const projectId =
+          Constants.expoConfig?.extra?.eas?.projectId as string | undefined
+          ?? 'ed4b5937-23df-4ed9-84f0-157f27ae1063';
+        const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });
         await usersApi.updatePushToken(token);
       } catch {
         // No disponible en Expo Go — requiere development build
