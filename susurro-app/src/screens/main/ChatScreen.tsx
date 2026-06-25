@@ -24,7 +24,7 @@ export default function ChatScreen({ route, navigation }: any) {
   const { conversationId, alias } = route.params as { conversationId: string; alias: string };
   const { user } = useAuthStore();
   const insets = useSafeAreaInsets();
-  const [extraBottom, setExtraBottom] = useState(0);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
@@ -34,17 +34,13 @@ export default function ChatScreen({ route, navigation }: any) {
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTypingEmit = useRef(0);
 
-  // Android: manually track keyboard height to position input correctly
+  // Android: track keyboard visibility to adjust input row padding and avoid gap
   useEffect(() => {
     if (Platform.OS !== 'android') return;
-    const show = Keyboard.addListener('keyboardDidShow', e => {
-      setExtraBottom(e.endCoordinates.height - insets.bottom);
-    });
-    const hide = Keyboard.addListener('keyboardDidHide', () => {
-      setExtraBottom(0);
-    });
+    const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
     return () => { show.remove(); hide.remove(); };
-  }, [insets.bottom]);
+  }, []);
 
   const scrollToBottom = useCallback((animated = true) => {
     setTimeout(() => listRef.current?.scrollToEnd({ animated }), 80);
@@ -180,10 +176,11 @@ export default function ChatScreen({ route, navigation }: any) {
   const formatTime = (iso: string) =>
     new Date(iso).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
 
-  // iOS: KeyboardAvoidingView handles keyboard movement
-  // Android: manual extraBottom from keyboard listener, no KAV needed
-  const containerStyle = [styles.container, Platform.OS === 'android' && { paddingBottom: extraBottom }];
-  const inputBottomPad = { paddingBottom: Math.max(insets.bottom, 12) };
+  // Cuando el teclado está visible en Android, quitamos el padding de nav bar
+  // para evitar el gap que queda entre el input y el borde del teclado.
+  const inputBottomPad = {
+    paddingBottom: Platform.OS === 'android' && keyboardVisible ? 8 : Math.max(insets.bottom, 12),
+  };
 
   const content = (
     <>
@@ -273,15 +270,14 @@ export default function ChatScreen({ route, navigation }: any) {
     </>
   );
 
-  if (Platform.OS === 'ios') {
-    return (
-      <KeyboardAvoidingView style={styles.container} behavior="padding">
-        {content}
-      </KeyboardAvoidingView>
-    );
-  }
-
-  return <View style={containerStyle}>{content}</View>;
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      {content}
+    </KeyboardAvoidingView>
+  );
 }
 
 const styles = StyleSheet.create({
