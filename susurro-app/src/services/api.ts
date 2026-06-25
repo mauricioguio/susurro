@@ -66,9 +66,9 @@ export const confessionsApi = {
   getById: (id: string) => api.get(`/confessions/${id}`).then(r => r.data),
   getReplies: (id: string) => api.get(`/confessions/${id}/replies`).then(r => r.data as { parent: any; replies: any[] }),
   getTags: () => api.get('/confessions/tags').then(r => r.data as { tag: string; count: number }[]),
-  uploadAudio: (uri: string) => {
+  uploadAudio: (uri: string, mimeType = 'audio/m4a', fileName = 'audio.m4a') => {
     const form = new FormData();
-    form.append('audio', { uri, type: 'audio/m4a', name: 'audio.m4a' } as any);
+    form.append('audio', { uri, type: mimeType, name: fileName } as any);
     return api.post('/confessions/upload-audio', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }).then(r => r.data as { url: string });

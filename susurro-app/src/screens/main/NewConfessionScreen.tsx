@@ -5,6 +5,7 @@ import {
   ScrollView, Dimensions,
 } from 'react-native';
 import { Audio } from 'expo-av';
+import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { confessionsApi, API_BASE } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
@@ -53,6 +54,8 @@ export default function NewConfessionScreen({ navigation, route }: any) {
   const [waveform, setWaveform] = useState<number[]>([]);
   const soundRef = useRef<Audio.Sound | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [pickedMime, setPickedMime] = useState('audio/m4a');
+  const [pickedName, setPickedName] = useState('audio.m4a');
 
   useEffect(() => () => {
     recordingRef.current?.stopAndUnloadAsync().catch(() => {});
@@ -116,6 +119,42 @@ export default function NewConfessionScreen({ navigation, route }: any) {
     await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
   };
 
+  const pickAudio = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'audio/*',
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+
+      const MAX_BYTES = 50 * 1024 * 1024; // 50 MB
+      if (asset.size && asset.size > MAX_BYTES) {
+        Alert.alert('Archivo muy grande', 'El audio no puede superar los 50 MB.');
+        return;
+      }
+
+      // Obtener duración real del archivo
+      let durationSecs = 0;
+      try {
+        const { sound, status } = await Audio.Sound.createAsync({ uri: asset.uri }, { shouldPlay: false });
+        if (status.isLoaded && status.durationMillis) {
+          durationSecs = Math.round(status.durationMillis / 1000);
+        }
+        await sound.unloadAsync();
+      } catch {}
+
+      setAudioUri(asset.uri);
+      setRecordSecs(durationSecs);
+      setPickedMime(asset.mimeType ?? 'audio/m4a');
+      setPickedName(asset.name ?? 'audio.m4a');
+      // Waveform plana — no tenemos datos de metering del archivo
+      setWaveform(Array.from({ length: 40 }, () => 0.3 + Math.random() * 0.4));
+    } catch {
+      Alert.alert('Error', 'No se pudo cargar el archivo de audio.');
+    }
+  };
+
   const playPreview = async () => {
     if (!audioUri) return;
     if (playing && soundRef.current) {
@@ -143,7 +182,7 @@ export default function NewConfessionScreen({ navigation, route }: any) {
       let audioUrl: string | undefined;
       if (mode === 'voice' && audioUri) {
         try {
-          const { url } = await confessionsApi.uploadAudio(audioUri);
+          const { url } = await confessionsApi.uploadAudio(audioUri, pickedMime, pickedName);
           audioUrl = url;
         } catch (e: any) {
           Alert.alert('Error subiendo audio', e?.response?.data?.message ?? e?.message ?? 'upload failed');
@@ -248,6 +287,12 @@ export default function NewConfessionScreen({ navigation, route }: any) {
                     <View style={[styles.recordingFill, { width: `${(recordSecs / MAX_RECORD_SECS) * 100}%` as any }]} />
                   </View>
                 )}
+                {!isRecording && (
+                  <TouchableOpacity style={styles.uploadAudioBtn} onPress={pickAudio}>
+                    <Ionicons name="folder-open-outline" size={16} color="rgba(255,255,255,0.5)" />
+                    <Text style={styles.uploadAudioTxt}>Cargar audio del celular</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             ) : (
               <View style={styles.voicePreview}>
@@ -258,7 +303,7 @@ export default function NewConfessionScreen({ navigation, route }: any) {
                   <View style={styles.previewFill} />
                 </View>
                 <Text style={styles.previewSecs}>{recordSecs}s</Text>
-                <TouchableOpacity onPress={() => { setAudioUri(null); setRecordSecs(0); }}>
+                <TouchableOpacity onPress={() => { setAudioUri(null); setRecordSecs(0); setPickedMime('audio/m4a'); setPickedName('audio.m4a'); }}>
                   <Text style={styles.reRecord}>Re-grabar</Text>
                 </TouchableOpacity>
               </View>
@@ -415,6 +460,13 @@ const styles = StyleSheet.create({
   previewFill: { width: '30%', height: '100%', backgroundColor: 'rgba(255,255,255,0.4)', borderRadius: 2 },
   previewSecs: { color: 'rgba(255,255,255,0.4)', fontSize: 12 },
   reRecord: { color: 'rgba(255,255,255,0.3)', fontSize: 12, textDecorationLine: 'underline' },
+  uploadAudioBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    marginTop: 4, paddingVertical: 8, paddingHorizontal: 16,
+    borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  uploadAudioTxt: { color: 'rgba(255,255,255,0.45)', fontSize: 13 },
 
   // Sections
   section: { paddingVertical: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', gap: 12 },

@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { confessionsApi, notificationsApi } from '../../services/api';
-import { Confession, REACTIONS, timeAgo, expiresIn, PollResult, MiniAudioPlayer } from '../../components/ConfessionCard';
+import { Confession, REACTIONS, timeAgo, expiresIn, PollResult, CircularAudioPlayer } from '../../components/ConfessionCard';
 import CommentsModal from './CommentsModal';
 
 const { width: W } = Dimensions.get('window');
@@ -157,7 +157,9 @@ function TikTokCard({ item, height, navigation, onReact, onOpenComments }: {
       {/* ── Content centered ── */}
       <View style={styles.contentArea}>
         {item.audioUrl
-          ? <MiniAudioPlayer audioUrl={item.audioUrl} />
+          ? <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', marginRight: -52 }}>
+              <CircularAudioPlayer audioUrl={item.audioUrl} waveform={item.waveform} />
+            </View>
           : <Text style={styles.confessionText}>{item.text}</Text>
         }
         {item.pollQuestion && (
@@ -219,9 +221,7 @@ function TikTokCard({ item, height, navigation, onReact, onOpenComments }: {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.sideAction} onPress={handleShare}>
-          <View style={styles.shareCircle}>
-            <Ionicons name="arrow-redo" size={18} color="rgba(255,255,255,0.75)" />
-          </View>
+          <Ionicons name="arrow-redo" size={22} color="rgba(255,255,255,0.75)" />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.sideAction} onPress={handleReport}>
@@ -331,13 +331,22 @@ export default function FeedScreen({ navigation }: any) {
           ))}
         </View>
 
-        <TouchableOpacity
-          onPress={() => navigation.navigate('NewConfession')}
-          style={styles.composeBtn}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="create-outline" size={22} color="rgba(255,255,255,0.85)" />
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Messages')}
+            style={styles.composeBtn}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="chatbubble-ellipses-outline" size={22} color="rgba(255,255,255,0.85)" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('NewConfession')}
+            style={styles.composeBtn}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="create-outline" size={22} color="rgba(255,255,255,0.85)" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* ── TikTok vertical feed ── */}
@@ -397,7 +406,7 @@ export default function FeedScreen({ navigation }: any) {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#080808' },
+  container: { flex: 1, backgroundColor: 'transparent' },
 
   // Header
   header: {
@@ -412,6 +421,7 @@ const styles = StyleSheet.create({
   modeTabUnderline: { marginTop: 4, width: '80%', height: 2, borderRadius: 1, backgroundColor: '#fff' },
   bellBtn: { position: 'relative', width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   bellIcon: { fontSize: 20 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   composeBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   composeIcon: { fontSize: 18 },
   badge: {
@@ -424,7 +434,7 @@ const styles = StyleSheet.create({
 
   // TikTok card
   card: {
-    backgroundColor: '#080808',
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.04)',
@@ -480,11 +490,6 @@ const styles = StyleSheet.create({
   sideCount: { color: 'rgba(255,255,255,0.45)', fontSize: 12, textAlign: 'center' },
   totalReactions: { color: 'rgba(255,255,255,0.35)', fontSize: 12, textAlign: 'center', marginTop: 2 },
   sideSep: { width: 22, height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginVertical: 8 },
-  shareCircle: {
-    width: 38, height: 38, borderRadius: 19,
-    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.25)',
-    alignItems: 'center', justifyContent: 'center',
-  },
 
 
   // Poll
