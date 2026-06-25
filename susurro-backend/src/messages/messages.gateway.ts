@@ -171,25 +171,39 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
       return;
     }
 
-    // Step 2: push notification — isolated so a failure here never affects message delivery
+    // Step 2: in-app + push notification — isolated so fallos aquí no afectan el envío
     try {
       if (otherUserId) {
         const isViewingChat = this.conversationPresence.get(payload.conversationId)?.has(otherUserId) ?? false;
-        const pushToken = await this.messagesService.getUserPushToken(otherUserId);
-        console.log(`[Push] isViewingChat=${isViewingChat} token=${pushToken ? pushToken.slice(0, 30) + '…' : 'null'}`);
-        if (!isViewingChat && pushToken) {
+
+        if (!isViewingChat) {
           const senderAlias = (message as any).sender?.alias ?? 'usuario';
-          const preview = message.text.length > 80 ? message.text.slice(0, 80) + '…' : message.text;
-          await this.notificationsService.send({
-            to: pushToken,
-            title: `@${senderAlias}`,
-            body: preview,
-            data: {
-              type: 'message',
-              conversationId: payload.conversationId,
-              alias: senderAlias,
-            },
-          });
+          const preview = message.text.length > 60 ? message.text.slice(0, 60) + '…' : message.text;
+
+          // Notificación in-app (campanita)
+          await this.notificationsService.save(
+            otherUserId,
+            'message',
+            `@${senderAlias}: ${preview}`,
+            undefined,
+            payload.conversationId,
+          );
+
+          // Push notification al dispositivo
+          const pushToken = await this.messagesService.getUserPushToken(otherUserId);
+          console.log(`[Push] isViewingChat=${isViewingChat} token=${pushToken ? pushToken.slice(0, 30) + '…' : 'null'}`);
+          if (pushToken) {
+            await this.notificationsService.send({
+              to: pushToken,
+              title: `@${senderAlias}`,
+              body: preview,
+              data: {
+                type: 'message',
+                conversationId: payload.conversationId,
+                alias: senderAlias,
+              },
+            });
+          }
         }
       }
     } catch (e) {

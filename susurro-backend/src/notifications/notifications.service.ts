@@ -36,10 +36,10 @@ export class NotificationsService {
     }
   }
 
-  async save(userId: string, type: string, message: string, confessionId?: string) {
+  async save(userId: string, type: string, message: string, confessionId?: string, conversationId?: string) {
     try {
       await this.prisma.notification.create({
-        data: { userId, type, message, confessionId: confessionId ?? null },
+        data: { userId, type, message, confessionId: confessionId ?? null, conversationId: conversationId ?? null },
       });
     } catch {}
   }
@@ -49,6 +49,7 @@ export class NotificationsService {
       where: { userId },
       orderBy: { createdAt: 'desc' },
       take: 50,
+      select: { id: true, type: true, message: true, read: true, createdAt: true, confessionId: true, conversationId: true },
     });
   }
 

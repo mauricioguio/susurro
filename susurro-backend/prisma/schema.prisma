@@ -75,9 +75,10 @@ model Notification {
   read         Boolean  @default(false)
   createdAt    DateTime @default(now())
 
-  userId       String
-  confessionId String?
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  confessionId   String?
+  conversationId String?
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, read])

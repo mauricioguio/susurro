@@ -13,6 +13,7 @@ const TYPE_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   reaction: 'heart-outline',
   follow:   'person-add-outline',
   reply:    'link-outline',
+  message:  'mail-outline',
 };
 
 export default function NotificationsScreen({ navigation }: any) {
@@ -33,7 +34,10 @@ export default function NotificationsScreen({ navigation }: any) {
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const handlePress = (n: AppNotification) => {
-    if (n.confessionId) {
+    if (n.conversationId) {
+      const aliasMatch = n.message.match(/^@([^:]+):/);
+      navigation.navigate('Chat', { conversationId: n.conversationId, alias: aliasMatch?.[1] ?? '' });
+    } else if (n.confessionId) {
       navigation.navigate('ConfessionDetail', { confessionId: n.confessionId });
     }
   };
@@ -79,7 +83,7 @@ export default function NotificationsScreen({ navigation }: any) {
                 <Text style={styles.message}>{item.message}</Text>
                 <Text style={styles.time}>{timeAgo(item.createdAt)}</Text>
               </View>
-              {item.confessionId && <Text style={styles.arrow}>›</Text>}
+              {(item.confessionId || item.conversationId) && <Text style={styles.arrow}>›</Text>}
             </TouchableOpacity>
           )}
         />
@@ -89,7 +93,7 @@ export default function NotificationsScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#080808' },
+  container: { flex: 1, backgroundColor: 'transparent' },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16,

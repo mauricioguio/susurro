@@ -57,6 +57,7 @@ export const confessionsApi = {
   create: (data: {
     text?: string;
     audioUrl?: string;
+    waveform?: number[];
     tags?: string[];
     expiresAt?: string;
     pollQuestion?: string;
@@ -95,6 +96,7 @@ export type AppNotification = {
   read: boolean;
   createdAt: string;
   confessionId: string | null;
+  conversationId: string | null;
 };
 
 export const usersApi = {
