@@ -13,9 +13,12 @@ export class NotificationsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async send(message: PushMessage) {
-    if (!message.to?.startsWith('ExponentPushToken')) return;
+    if (!message.to?.startsWith('ExponentPushToken')) {
+      console.log(`[Push] skipped — token format invalid: ${message.to?.slice(0, 40)}`);
+      return;
+    }
     try {
-      await fetch('https://exp.host/--/api/v2/push/send', {
+      const res = await fetch('https://exp.host/--/api/v2/push/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({
@@ -26,7 +29,11 @@ export class NotificationsService {
           data: message.data ?? {},
         }),
       });
-    } catch {}
+      const result = await res.json();
+      console.log(`[Push] result: ${JSON.stringify(result)}`);
+    } catch (e) {
+      console.error('[Push] fetch error:', e);
+    }
   }
 
   async save(userId: string, type: string, message: string, confessionId?: string) {

@@ -153,41 +153,47 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
     const userId = client.data.userId as string;
     if (!userId || !payload?.conversationId || !payload?.text?.trim()) return;
 
+    type MsgType = Awaited<ReturnType<MessagesService['sendMessage']>>;
+    let message: MsgType | null = null;
+    let otherUserId: string | null = null;
+
+    // Step 1: save and deliver message
     try {
-      const message = await this.messagesService.sendMessage(userId, payload.conversationId, payload.text.trim());
-      const otherUserId = await this.messagesService.getOtherParticipantId(payload.conversationId, userId);
+      message = await this.messagesService.sendMessage(userId, payload.conversationId, payload.text.trim());
+      otherUserId = await this.messagesService.getOtherParticipantId(payload.conversationId, userId);
 
-      // Confirm to sender (current socket only)
       client.emit('messageSent', message);
-
-      // Sync sender's other devices
       this.emitToUser(userId, 'newMessage', message, client.id);
+      if (otherUserId) this.emitToUser(otherUserId, 'newMessage', message);
+    } catch (e) {
+      console.error('[sendMessage error]', e);
+      client.emit('messageError', { error: 'No se pudo enviar el mensaje' });
+      return;
+    }
 
-      // Deliver to recipient
+    // Step 2: push notification — isolated so a failure here never affects message delivery
+    try {
       if (otherUserId) {
-        this.emitToUser(otherUserId, 'newMessage', message);
-
-        // Push notification if recipient is not viewing this chat
         const isViewingChat = this.conversationPresence.get(payload.conversationId)?.has(otherUserId) ?? false;
-        if (!isViewingChat) {
-          const pushToken = await this.messagesService.getUserPushToken(otherUserId);
-          if (pushToken) {
-            const preview = message.text.length > 80 ? message.text.slice(0, 80) + '…' : message.text;
-            await this.notificationsService.send({
-              to: pushToken,
-              title: `@${message.sender.alias}`,
-              body: preview,
-              data: {
-                type: 'message',
-                conversationId: payload.conversationId,
-                alias: message.sender.alias,
-              },
-            });
-          }
+        const pushToken = await this.messagesService.getUserPushToken(otherUserId);
+        console.log(`[Push] isViewingChat=${isViewingChat} token=${pushToken ? pushToken.slice(0, 30) + '…' : 'null'}`);
+        if (!isViewingChat && pushToken) {
+          const senderAlias = (message as any).sender?.alias ?? 'usuario';
+          const preview = message.text.length > 80 ? message.text.slice(0, 80) + '…' : message.text;
+          await this.notificationsService.send({
+            to: pushToken,
+            title: `@${senderAlias}`,
+            body: preview,
+            data: {
+              type: 'message',
+              conversationId: payload.conversationId,
+              alias: senderAlias,
+            },
+          });
         }
       }
-    } catch {
-      client.emit('messageError', { error: 'No se pudo enviar el mensaje' });
+    } catch (e) {
+      console.error('[Push notification error]', e);
     }
   }
 }
