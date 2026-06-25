@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TextInput, TouchableOpacity,
-  KeyboardAvoidingView, Platform, ActivityIndicator,
+  KeyboardAvoidingView, Platform, ActivityIndicator, Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +24,7 @@ export default function ChatScreen({ route, navigation }: any) {
   const { conversationId, alias } = route.params as { conversationId: string; alias: string };
   const { user } = useAuthStore();
   const insets = useSafeAreaInsets();
+  const [extraBottom, setExtraBottom] = useState(0);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
@@ -32,6 +33,18 @@ export default function ChatScreen({ route, navigation }: any) {
   const listRef = useRef<FlatList>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTypingEmit = useRef(0);
+
+  // Android: manually track keyboard height to position input correctly
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const show = Keyboard.addListener('keyboardDidShow', e => {
+      setExtraBottom(e.endCoordinates.height - insets.bottom);
+    });
+    const hide = Keyboard.addListener('keyboardDidHide', () => {
+      setExtraBottom(0);
+    });
+    return () => { show.remove(); hide.remove(); };
+  }, [insets.bottom]);
 
   const scrollToBottom = useCallback((animated = true) => {
     setTimeout(() => listRef.current?.scrollToEnd({ animated }), 80);
@@ -167,11 +180,13 @@ export default function ChatScreen({ route, navigation }: any) {
   const formatTime = (iso: string) =>
     new Date(iso).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
 
-  return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+  // iOS: KeyboardAvoidingView handles keyboard movement
+  // Android: manual extraBottom from keyboard listener, no KAV needed
+  const containerStyle = [styles.container, Platform.OS === 'android' && { paddingBottom: extraBottom }];
+  const inputBottomPad = { paddingBottom: Math.max(insets.bottom, 12) };
+
+  const content = (
+    <>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -234,7 +249,7 @@ export default function ChatScreen({ route, navigation }: any) {
       )}
 
       {/* Input */}
-      <View style={[styles.inputRow, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+      <View style={[styles.inputRow, inputBottomPad]}>
         <TextInput
           style={styles.input}
           placeholder="Escribe un mensaje..."
@@ -255,8 +270,18 @@ export default function ChatScreen({ route, navigation }: any) {
           <Ionicons name="send" size={18} color="#fff" />
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </>
   );
+
+  if (Platform.OS === 'ios') {
+    return (
+      <KeyboardAvoidingView style={styles.container} behavior="padding">
+        {content}
+      </KeyboardAvoidingView>
+    );
+  }
+
+  return <View style={containerStyle}>{content}</View>;
 }
 
 const styles = StyleSheet.create({
